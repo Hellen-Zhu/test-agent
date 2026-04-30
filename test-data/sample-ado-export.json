@@ -1,0 +1,11 @@
+{
+  "id": 27106,
+  "rev": 3,
+  "fields": {
+    "System.Title": "FX TRF Trade Creation",
+    "System.Description": "<p>As a Maker, I want to create FX TRF trades via the trading portal and API, so that they can be submitted for Checker approval and go live</p>",
+    "Microsoft.VSTS.Common.AcceptanceCriteria": "<ul><li>Maker can create a new FX TRF trade via POST /trades/create API with valid payload and receive 200 response</li><li>Created trade is persisted in the database with correct field values</li><li>Trade instrument structure is valid and can be retrieved via GET /trades/{id}</li><li>Maker can create a new FX TRF trade through the trading portal UI</li><li>After Maker submits, trade shows status 'Pending Approval' in the blotter</li><li>Checker can approve the pending trade and status changes to 'Live'</li><li>Maker can create FX TRF StepIn Full trade through the portal with correct lifecycle</li><li>Maker can create FX TRF StepIn Partial trade through the portal with correct lifecycle</li></ul>",
+    "System.WorkItemType": "User Story",
+    "System.State": "Active"
+  }
+}

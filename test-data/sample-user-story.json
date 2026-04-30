@@ -1,0 +1,16 @@
+{
+  "userStory": {
+    "title": "FX TRF Trade Creation",
+    "description": "As a Maker, I want to create FX TRF trades via the trading portal and API, so that they can be submitted for Checker approval and go live",
+    "acceptanceCriteria": [
+      "Maker can create a new FX TRF trade via POST /trades/create API with valid payload and receive 200 response",
+      "Created trade is persisted in the database with correct field values",
+      "Trade instrument structure is valid and can be retrieved via GET /trades/{id}",
+      "Maker can create a new FX TRF trade through the trading portal UI",
+      "After Maker submits, trade shows status 'Pending Approval' in the blotter",
+      "Checker can approve the pending trade and status changes to 'Live'",
+      "Maker can create FX TRF StepIn Full trade through the portal with correct lifecycle",
+      "Maker can create FX TRF StepIn Partial trade through the portal with correct lifecycle"
+    ]
+  }
+}

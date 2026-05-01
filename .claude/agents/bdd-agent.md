@@ -98,60 +98,43 @@ The calling command provides:
 
 ### Step 1: Build Step Catalog
 
-Build the complete Step Catalog in three parts: hardcoded genie built-in steps (fixed), custom snippets (scanned), custom Java steps (scanned).
+Load the pre-built Step Catalog directly from file.
 
-#### Part A — Genie Built-in Steps (hardcoded)
+#### Step 1a: Read catalog file
 
-These are fixed. Do NOT scan for them — use directly.
-
-**genie-rest (API layer):**
-
-| Step Pattern | Description |
-|---|---|
-| `Given start building a new request` | Initialize request builder |
-| `And set header '{key}' to '{value}'` | Add HTTP header |
-| `And set multi-part form parameter '{param}' from current scenario` | Add form field |
-| `And attach the multi-part dat file for product '{product}'` | Attach .dat file |
-| `And attach the request body to the report` | Attach body to report |
-| `When post to path '{path}'` | POST request |
-| `When get from path '{path}'` | GET request |
-| `When put to path '{path}'` | PUT request |
-| `When delete to path '{path}'` | DELETE request |
-| `Then response status code is '{code}'` | Assert HTTP status |
-| `And response matches current scenario` | Assert response matches scenario |
-| `And new {entity} is persisted in database successfully` | Assert DB persistence |
-| `And set path parameter '{param}' from stored variable '{var}'` | Extract path param |
-| `And set request body from stored variable '{var}'` | Set body from stored variable |
-
-**genie-playwright (UI layer):**
-
-| Step Pattern | Description |
-|---|---|
-| `Given user is on the '{page}' page` | Navigate to page |
-| `When user clicks the '{element}' element` | Click element |
-| `When user fills '{value}' into '{element}'` | Input value |
-| `Then the '{element}' should be visible` | Assert visibility |
-| `Then the page title should be '{title}'` | Assert page title |
-
-#### Part B — Custom Snippet Steps (scan)
+Use the **Read** tool to load the existing catalog:
 
 ```bash
-find {E2E_DIR}/src/test -name "*.snippet" 2>/dev/null
+cat {E2E_DIR}/src/test/resources/step-catalog.md
 ```
-For each found file, read and extract `@Given`/`@When`/`@Then` step patterns with their regex.
 
-#### Part C — Custom Java Step Definitions (scan)
+The catalog is maintained by `scripts/refresh-step-catalog.sh` (git hook / CI). It contains:
 
-```bash
-grep -rn "@Given\|@When\|@Then" {E2E_DIR}/src/test/java/ --include="*.java" 2>/dev/null
-```
-Extract method signatures and regex patterns from annotations.
+| Section | Content | Updated by |
+|---------|---------|------------|
+| Part A | genie-rest (14 steps) + genie-playwright (5 steps) | Hardcoded in catalog file |
+| Part B | Custom .snippet step patterns | refresh-step-catalog.sh (git hook/CI) |
+| Part C | Custom Java @Given/@When/@Then patterns | refresh-step-catalog.sh (git hook/CI) |
 
-#### Catalog Maintenance
+#### Step 1b: Fallback — runtime scan (only if catalog not found)
 
-The project maintains `src/test/resources/step-catalog.md` via `scripts/refresh-step-catalog.sh` (run on git hook or CI). The script auto-updates only the custom steps section (Parts B and C) while preserving the hardcoded genie steps (Part A).
+If `step-catalog.md` does not exist (new project, no CI hook configured), fall back to runtime scan:
 
-At runtime: load Parts A + B + C = complete Step Catalog.
+1. **Scan .snippet files:**
+   ```bash
+   find {E2E_DIR}/src/test -name "*.snippet" 2>/dev/null
+   ```
+   Read each file, extract `@Given`/`@When`/`@Then` patterns with regex.
+
+2. **Scan Java step definitions:**
+   ```bash
+   grep -rn "@Given\|@When\|@Then" {E2E_DIR}/src/test/java/ --include="*.java" 2>/dev/null
+   ```
+   Extract method signatures and regex patterns.
+
+#### Step 1c: Use the complete catalog
+
+The complete Step Catalog = Part A (genie built-in) + Part B (custom snippets) + Part C (custom Java). Use this catalog for Step Reuse Rules in Step 3.
 
 ### Step 2: Check Existing Feature Files
 

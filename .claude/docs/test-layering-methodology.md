@@ -1,156 +1,235 @@
-# Test Layering Methodology
+# Test Design And Layering Methodology
 
-A systematic 5-step method for assigning acceptance criteria to API (`@api`) or UI/E2E (`@playwright`) test layers.
+This methodology defines how `bdd-agent` Phase 1 turns a confirmed Story Contract into layered test points. It mirrors how an experienced QA engineer designs tests: understand behavior, identify what must be proven, choose the cheapest reliable layer, then group compatible validation intent for later feature generation.
 
----
+## Core Principle
 
-## Step 1: Decompose ACs into Atomic Behaviors
+Layering is not based on whether the story mentions API or UI. Layering is based on the primary validation target.
 
-A single acceptance criterion often bundles multiple independently verifiable behaviors. Decompose before layering.
+Ask:
 
-**Example:**
-
-AC: "Given a valid FX TRF trade payload, When a Maker POSTs to POST /trades/create with correct headers, Then the response status code is 200 and the trade is persisted in the database with correct field values"
-
-Decomposes into:
-- Behavior 1: API returns 200 on valid payload
-- Behavior 2: Trade record exists in DB with correct field values
-- Behavior 3: (implicit negative) Invalid payload returns appropriate error code
-
-**Rules:**
-- If an AC contains "and" joining two distinct assertions → split
-- If an AC implies a negative/boundary case not stated → extract it
-- Each atomic behavior gets its own layering decision
-
----
-
-## Step 2: Model Entity State Machine
-
-Map the entity lifecycle as a state machine. Identify which actor triggers each state transition.
-
-**Example (Trade lifecycle):**
-
-```
-[Draft] --Maker POST--> [Pending Approval] --Checker approve--> [Live]
-                                           --Checker reject---> [Rejected]
-[Live]  --Maker amend--> [Pending Approval]
+```text
+What are we proving, and where is the cheapest reliable place to prove it?
 ```
 
-**Layering signals from the state machine:**
+Use the Story Contract fields:
+- Given/When/Then ACs
+- `observableEvidence`
+- `requirementAnalysis`
+- approved `solutionDesign` when available
+- `technicalNotes` only as fallback trace context
 
-| Pattern | Layer | Reasoning |
-|---------|-------|-----------|
-| Single actor, single transition | API | One request, one response — no UI orchestration needed |
-| Single actor, chained transitions | API (multi-step) | Sequential API calls by same actor |
-| Cross-actor transition (role handoff) | UI/E2E | Requires separate user sessions (e.g. Maker → Checker) |
-| Full lifecycle traversal (3+ states) | UI/E2E | End-to-end business flow verification |
-| State persistence after transition | API | DB assertion after API call |
+Do not create test points for behavior that is not represented by the approved Story Contract.
 
----
+Evidence precedence:
+1. Use business story fields and ACs for behavior scope.
+2. Use approved `solutionDesign` as the primary design evidence for test design.
+3. Use `technicalNotes` only when `solutionDesign` is missing or does not cover that detail.
+4. If `technicalNotes` conflicts with approved `solutionDesign`, use `solutionDesign`.
 
-## Step 3: Separate Business Rules from Workflow
+`technicalNotes.testLayer` is never authoritative. It may explain why a layer was suggested, but the final layer must still be selected by validation target.
 
-Every atomic behavior falls into one of two categories. This distinction drives layer assignment.
+## Test Design Loop
 
-### Business Rules (data correctness)
+Use this loop for each AC and its observable evidence:
 
-Things the system enforces regardless of how you interact with it:
-
-- Input validation (required fields, format, range)
-- Calculation logic (pricing, notional amount)
-- Constraint enforcement (duplicate detection, permission checks)
-- Data transformation (field mapping, derived values)
-- Error codes and messages for invalid inputs
-
-**→ Almost always API layer.** These are properties of the backend, testable via HTTP request/response.
-
-### Workflow (process correctness)
-
-Things that emerge from multi-step, multi-actor interaction:
-
-- Role handoff sequences (Maker creates → Checker approves)
-- Status progression through a business process
-- UI state consistency (blotter shows correct status after action)
-- End-to-end orchestration (create → verify → approve → verify final state)
-
-**→ Almost always UI/E2E layer.** These require browser-level orchestration or cross-session flows.
-
-### Grey area: API-verifiable workflow
-
-Some workflow steps CAN be verified via chained API calls (same actor, no UI rendering assertions). In these cases, prefer API layer for speed. Only push to UI/E2E if:
-- The AC explicitly mentions UI elements (blotter, portal, page)
-- Multiple user sessions are required
-- The assertion is about what the user SEES, not what the system STORES
-
----
-
-## Step 4: Apply Decision Tree
-
-For each atomic behavior from Step 1, walk this decision tree:
-
-```
-Is this behavior fully verifiable through a single API request-response?
-│
-├── YES
-│   ├── Core assertion is about data/state correctness?
-│   │   ├── YES → API (@api)
-│   │   └── NO (about UI rendering/display) → UI/E2E (@playwright)
-│   │
-│   └── (proceed)
-│
-└── NO
-    ├── Does it require multiple actors (different user sessions)?
-    │   ├── YES → UI/E2E (@playwright)
-    │   └── NO
-    │       ├── Can it be verified via chained API calls (same actor)?
-    │       │   ├── YES → API (@api) with multi-step scenario
-    │       │   └── NO (requires browser interaction) → UI/E2E (@playwright)
-    │       └── (proceed)
-    └── (proceed)
+```text
+Behavior under test
+  -> Observable evidence
+  -> Risk and rule analysis
+  -> Cheapest reliable layer
+  -> Test point
+  -> Grouping key
+  -> challenge for gaps or duplication
 ```
 
-**Decision tree override rules:**
-- AC explicitly says "via the trading portal" / "through the UI" / "in the blotter" → UI/E2E regardless of decision tree
-- AC explicitly says "via API" / "POST/GET/PUT/DELETE" → API regardless of decision tree
-- When in doubt, prefer API (faster, more stable, lower maintenance)
+The loop may start from evidence. If evidence is "Create Trade button is visible", infer the validation target is UI availability or permission feedback, not backend creation.
 
----
+## 1. Identify Test Conditions
 
-## Step 5: Test Pyramid Balance Check
+A test condition is one thing that must be true for the story to be accepted.
 
-After all atomic behaviors are assigned, validate the overall distribution:
+Extract test conditions from:
+- `given`: precondition, role, state, data setup
+- `when`: business action or event
+- `then`: expected business outcome
+- `observableEvidence`: concrete signal that proves the outcome
+- `requirementAnalysis`: rules, constraints, assumptions, open questions
+- `solutionDesign`: confirmed test-relevant design evidence, such as API contracts, UI visible states, permissions, data/audit/event behavior, test data, feature flags, automation hooks, and explicit test design implications
+- `technicalNotes`: fallback technical trace only; do not use it as primary evidence when approved `solutionDesign` exists
 
-### Ratio check
+Common test condition types:
 
-| Metric | Healthy Range | Action if Out of Range |
-|--------|--------------|----------------------|
-| API test points | 40–70% of total | If <40%: review whether some UI scenarios can be pushed down to API |
-| UI/E2E test points | 30–60% of total | If >60%: likely over-testing through UI — check for API-verifiable behaviors |
-| Uncovered ACs | 0 | Any uncovered AC is a gap — assign it |
-| Dual-covered behaviors | Justified only | If same behavior tested at both layers, document why (e.g. API tests data correctness, UI tests display correctness) |
+| Type | Examples |
+|------|----------|
+| Happy path | valid trade can be created |
+| Business rule | checker cannot approve own trade |
+| Validation | missing maturity date is rejected |
+| Boundary | maximum notional amount is accepted or rejected |
+| Permission | Create button visible only for maker |
+| Workflow | maker submits and checker approves |
+| State transition | pending approval becomes live |
+| Visibility | status appears in blotter |
+| Prompt/confirmation | cancellation dialog appears before submit |
+| Persistence/audit | trade state or audit event is stored |
 
-### Common mistakes to catch
+## 2. Choose Layer By Validation Target
 
-1. **UI-heavy bias**: testing data validation through the UI when a 200ms API call would suffice
-2. **Missing negative cases**: only testing happy paths → add `@negative` scenarios for error codes, validation failures
-3. **Redundant cross-layer coverage**: exact same assertion at both API and UI → keep only the faster one unless the UI rendering assertion adds distinct value
-4. **Lifecycle gaps**: state machine has transitions not covered by any test point → add scenarios for untested transitions
+Use this matrix first.
 
----
+| Validation target | Default layer | Reason |
+|-------------------|---------------|--------|
+| Input validation, field rules, calculations, transformations | API | Faster, deterministic, easier defect localization |
+| Error code, error reason, response schema | API | Contract-level behavior |
+| Persistence, stored state, audit record created by backend action | API | Backend truth can be verified without UI |
+| Permission enforced by backend | API first | Security/rule enforcement should not rely only on UI |
+| Permission shown as available/disabled action | UI | The user-visible affordance is the behavior |
+| Button, menu item, dialog, banner, status label visibility | UI | Evidence is visual/user-facing |
+| Blotter/table/page shows business state | UI | User-visible state is the behavior |
+| Multi-actor handoff | UI/E2E | Requires role/session workflow confidence |
+| Full lifecycle or cross-page journey | UI/E2E | End-to-end business confidence |
+| Same-actor chained backend workflow | API | Can be verified faster with sequential API calls |
+| Integration with external system only visible through contract/event | API or integration | UI adds little value unless user visibility matters |
 
-## Quick Reference: Layer Decision Signals
+## 3. API Layer Rules
 
-| Signal in AC | → Layer | Confidence |
-|-------------|---------|------------|
-| "POST / GET / PUT / DELETE" | API | High |
-| "response status code" | API | High |
-| "persisted in database" | API | High |
-| "field values match" / "valid structure" | API | High |
-| "error code" / "validation error" | API | High |
-| "via the trading portal" / "through the UI" | UI/E2E | High |
-| "in the blotter" / "shows status" | UI/E2E | High |
-| "Maker creates ... Checker approves" | UI/E2E | High |
-| "lifecycle" / "progresses through" | UI/E2E | Medium-High |
-| "logged in" / "user session" | UI/E2E | Medium |
-| "approval workflow" | UI/E2E | Medium |
-| No explicit channel mentioned | API (default) | Medium |
+Choose API when the primary question is:
+- Did the system accept or reject the business input correctly?
+- Did it enforce a rule or permission?
+- Did it calculate, transform, persist, or return the correct business state?
+- Can the observable evidence be verified through response, database, audit, or event state?
+
+API examples:
+
+```text
+AC evidence: validation reason is returned for missing maturity date
+Layer: API
+Reason: field validation and error reason are backend rules
+```
+
+```text
+AC evidence: trade is stored in Pending Approval state
+Layer: API
+Reason: persistence state is backend truth
+```
+
+API should not be selected only because technical notes contain an endpoint. The endpoint is implementation evidence, not the business validation target.
+
+## 4. UI/E2E Layer Rules
+
+Choose UI/E2E when the primary question is:
+- Can the user see or use the business capability?
+- Is a button, menu item, status, warning, dialog, or page state visible as expected?
+- Does the workflow require multiple roles, sessions, or user-facing handoff?
+- Is the value specifically about user confidence in the flow?
+
+UI examples:
+
+```text
+AC evidence: Create Trade button is visible and enabled
+Layer: UI
+Reason: the behavior is user-visible capability availability
+```
+
+```text
+AC evidence: cancellation confirmation dialog is displayed
+Layer: UI
+Reason: the behavior is a user-facing confirmation prompt
+```
+
+```text
+AC evidence: maker sees Pending Approval and checker can approve it
+Layer: UI/E2E
+Reason: cross-role handoff and visible workflow state require user journey confidence
+```
+
+Do not push UI-visible evidence down to API just because backend state could imply it. If the story cares that the user sees it, keep a UI test point.
+
+## 5. Dual-Layer Strategy
+
+Some behavior deserves both API and UI coverage, but only when each layer proves different value.
+
+Valid dual-layer cases:
+
+| API proves | UI proves |
+|------------|-----------|
+| backend rejects unauthorized action | unauthorized user does not see the action button |
+| backend stores Pending Approval state | blotter displays Pending Approval to the maker/checker |
+| validation rule returns error reason | user sees the validation reason in the form/dialog |
+| approval endpoint changes state | checker workflow exposes approval and final status |
+
+Invalid duplication:
+- API verifies status is Pending Approval and UI verifies the same state with no user-visible value.
+- UI repeats every backend validation field when API coverage is enough.
+- Full UI workflow is added for every negative data rule.
+
+## 6. Scenario Economy And Grouping
+
+Phase 1 outputs test points, not final scenarios. Still, it must mark compatible points for Phase 2 grouping.
+
+Use the same `Grouping Key` when test points share:
+- same layer
+- same business entry point or UI flow
+- same precondition shape
+- same assertion theme
+- compatible polarity (`@positive` or `@negative`)
+
+Grouping key format:
+
+```text
+{layer}:{entry-point-or-flow}:{assertion-theme}
+```
+
+Examples:
+- `api:create-trade:validation-errors`
+- `api:create-trade:persistence`
+- `ui:create-trade:visible-affordance`
+- `ui:cancel-trade:confirmation-dialog`
+- `ui:maker-checker-lifecycle:visible-status`
+
+## 7. Tagging Rules
+
+Each test point gets:
+- exactly one layer tag: `@api` or `@playwright`
+- exactly one polarity tag: `@positive` or `@negative`
+- exactly one selection tag: `@smoke` or `@regression`
+
+Smoke candidates:
+- critical happy path
+- core workflow that proves the feature is usable
+- high-risk permission or lifecycle path
+- blocker behavior that would stop release if broken
+
+Regression candidates:
+- field-level validation
+- boundary and negative cases
+- secondary visibility checks
+- non-critical variants
+
+## 8. Challenge Questions
+
+Before returning the Phase 1 report, challenge the design:
+
+| Question | Action |
+|----------|--------|
+| Is every AC covered by at least one test point? | Add or map missing test point |
+| Is every observable evidence item covered? | Add UI/API point or explain why not |
+| Is a UI test only checking backend truth? | Push to API unless user visibility matters |
+| Is an API test trying to prove visual behavior? | Move to UI |
+| Are we duplicating the same value across layers? | Remove one or explain distinct value |
+| Can several API validation points become one Scenario Outline later? | Share grouping key |
+| Can several UI visible checks be one journey later? | Share grouping key |
+| Are open questions blocking test design? | Mark as risk in reasoning |
+
+## 9. Output Expectations
+
+Each Phase 1 test point should explain:
+- source AC ID
+- validation target
+- observable evidence covered
+- selected layer
+- tags
+- grouping key
+- why this layer is the cheapest reliable place to prove the behavior
+
+The output should make Phase 2 feature generation straightforward without reinterpreting the story.

@@ -42,6 +42,16 @@ Your job is to turn approved BDD feature files into working automation. The feat
 | Duplicate prevention | Search existing snippets, Java step definitions, helpers, page objects, and clients before creating new code. |
 | Verification | Run or report dry-run, compile, unit, API, UI, or targeted Cucumber commands appropriate to the implementation. |
 
+## Standards Ownership
+
+This agent defines role, ownership boundaries, execution order, and implementation reporting.
+
+Use:
+- `~/.claude/docs/automation-implementation-standards.md` for feature-driven automation implementation rules, step binding decisions, snippet-vs-Java rules, API/UI automation rules, test data rules, fixture/cleanup rules, verification rules, anti-patterns, and required output checks.
+- `~/.claude/docs/snippet-design-guide.md` when the project uses genie snippets or snippet-level business steps.
+
+Do not duplicate or override those detailed rules in this agent. If this file and the standards appear to conflict, follow the stricter boundary and report the inconsistency as a process gap.
+
 ## Input
 
 The caller should provide:
@@ -54,28 +64,30 @@ The caller should provide:
 ## Workflow
 
 1. Resolve `{E2E_DIR}` from explicit input, path hints, or workspace `CLAUDE.md`.
-2. Read `~/.claude/docs/snippet-design-guide.md` when the project uses genie snippets or snippet-level business steps.
-3. Read approved feature files or feature content. Treat these files as the golden source.
-4. Extract every step pattern from the feature files only.
-5. Scan existing automation implementation:
+2. Read `~/.claude/docs/automation-implementation-standards.md`.
+3. Read `~/.claude/docs/snippet-design-guide.md` when the project uses genie snippets or snippet-level business steps.
+4. Read approved feature files or feature content. Treat these files as the golden source.
+5. Extract every step pattern from the feature files only.
+6. Scan existing automation implementation:
    ```bash
    find {E2E_DIR}/src/test -name "*.snippet" 2>/dev/null
    grep -rn "@Given\|@When\|@Then" {E2E_DIR}/src/test/java/ --include="*.java" 2>/dev/null
    find {E2E_DIR}/src/test -type f \( -name "*Page*.java" -o -name "*Client*.java" -o -name "*Fixture*.java" -o -name "*Helper*.java" \) 2>/dev/null
    ```
-6. Build a Step Binding Map:
+7. Build a Step Binding Map:
    - exact existing match
    - parameterized existing match
    - reusable helper/page/client exists but binding missing
    - no reusable implementation found
    - `DESIGN_GAP`
-7. Implement only the missing automation artifacts approved by the caller or clearly required by the feature files.
-8. Prefer existing abstractions and package layout. Add new abstractions only when they reduce real duplication or match established framework patterns.
-9. Run targeted verification when available:
+8. Implement only the missing automation artifacts approved by the caller or clearly required by the feature files.
+9. Prefer existing abstractions and package layout. Add new abstractions only when they reduce real duplication or match established framework patterns.
+10. Run the Required Output Checks in `~/.claude/docs/automation-implementation-standards.md`.
+11. Run targeted verification when available:
    - Cucumber dry-run for generated tags
    - compile/test command for changed code
    - targeted API/UI scenario command when safe
-10. Return the implementation report.
+12. Return the implementation report.
 
 ## Output
 

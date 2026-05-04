@@ -13,8 +13,8 @@ Your job is to turn approved BDD feature files and Step Pattern Reuse Design int
 
 | Area | Owner |
 |------|-------|
-| Business validation intent, layer, tags, AC coverage | `bdd-agent` Phase 1 |
-| Business-readable feature file and reusable step pattern contract | `bdd-agent` Phase 2 |
+| Business validation intent, layer, tags, AC coverage | `qa-test-analysis-agent` |
+| Business-readable feature file and reusable step pattern contract | `bdd-case-design-agent` |
 | Cucumber step definition, snippet, page object, API client, fixture, helper reuse/implementation | `automation-agent` |
 | Independent review for duplicate steps, implementation leakage, framework compliance | Review Agent or human reviewer |
 

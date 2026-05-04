@@ -10,7 +10,7 @@ This guide is used differently by each agent:
 
 | Agent | Allowed use |
 |-------|-------------|
-| `bdd-agent` Phase 2 | Use only the business step authoring guidance: consistent domain wording, business meaning, reusable scope, and parameterization ideas. Do not inspect or select concrete step definitions/snippets. |
+| `bdd-case-design-agent` | Use only the business step authoring guidance: consistent domain wording, business meaning, reusable scope, and parameterization ideas. Do not inspect or select concrete step definitions/snippets. |
 | `automation-agent` | Use the implementation guidance: existing snippet reuse, Cucumber binding checks, snippet files, Java steps, page objects, API clients, fixtures, and helpers. |
 
 Feature design must never be distorted to fit existing automation code. If implementation reuse would require technical or awkward Gherkin wording, keep the approved business step pattern and let `automation-agent` adapt the implementation.
@@ -335,45 +335,37 @@ The `Layer` column values:
 - `UI` — used only in UI feature files
 - `API-precondition` — used only as data setup in API feature files (not in UI files)
 
-This allows the agent to build layer-specific catalogs without scanning file contents.
+This allows `automation-agent` to build layer-specific catalogs without scanning file contents.
 
 ---
 
 ## Part 5: Agent Decision Flow for Snippet Usage
 
-When the bdd-agent generates feature content, it should follow this decision flow for each step:
+When `automation-agent` implements approved feature content, it should follow this decision flow for each step pattern:
 
 ```
 For each step in the scenario:
 
-1. Is there an existing same-layer snippet in Step Catalog with matching business intent?
-   ├── YES → Reuse. Prefer generated wording that matches the existing snippet pattern.
+1. Is there an existing same-layer snippet or step definition with matching business intent?
+   ├── YES → Reuse it without changing the approved business Gherkin.
    └── NO → continue
 
 2. Can multiple genie built-in glue steps accomplish this?
    ├── YES
    │   ├── Is this a UI scenario?
-   │   │   ├── YES → MUST wrap as snippet (UI scenarios never expose raw glue)
-   │   │   │   → Mark as [NEW_SNIPPET_NEEDED] with:
-   │   │   │     - Suggested snippet name (business-behavior level)
-   │   │   │     - Internal glue steps that would compose it
-   │   │   │     - Parameters if applicable
+   │   │   ├── YES → Implement or reuse a snippet behind the approved business step.
+   │   │   │     Record the new/changed snippet in the Automation Implementation Report.
    │   │   └── NO (API scenario)
    │   │       ├── Is this the endpoint under test? → Use inline genie-rest glue
-   │   │       ├── Is this precondition setup with ≥3 glue steps? → Mark as [NEW_SNIPPET_NEEDED]
+   │   │       ├── Is this precondition setup with ≥3 glue steps? → Implement or reuse a precondition snippet.
    │   │       └── Is this simple precondition setup with 1-2 glue steps? → Use inline genie-rest glue
    │   └── (proceed)
    └── NO (genie built-in can't do it)
-       → Mark as [NEW_JAVA_STEP_NEEDED] with:
-         - Suggested step regex
-         - Implementation approach
-         - Whether it should be wrapped in a snippet or used directly
+       → Implement or reuse a Java step definition and record the binding decision.
 ```
 
 ### Key Rule
 
-**UI feature files must NEVER contain raw genie-playwright glue steps.** Every UI step must be either:
-- An existing snippet call
-- Marked as `[NEW_SNIPPET_NEEDED]` with the proposed business-behavior name
+**UI feature files must NEVER contain raw genie-playwright glue steps.** Every UI step must stay as approved business Gherkin. `automation-agent` decides whether the implementation uses an existing snippet, a new snippet, a Java step definition, page objects, or helpers.
 
-**API feature files MAY contain raw genie-rest glue steps** when they are scenario-specific. Only extract API snippets for precondition data setup, not for the endpoint under test.
+**API feature files must stay at business step-pattern level in the BDD case design stage.** `automation-agent` may implement those steps with genie-rest glue, Java step definitions, API clients, fixtures, YAML contracts, or helpers according to framework conventions.

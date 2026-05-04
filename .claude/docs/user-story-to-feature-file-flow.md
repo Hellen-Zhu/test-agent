@@ -11,9 +11,9 @@ Raw requirement, ADO item, or source notes
   -> /enrichstorydesign when design context is needed
   -> design-ready Story Contract JSON with approved solutionDesign
   -> /bdd-gen
-  -> bdd-agent Phase 1: Test Layering Analysis
+  -> qa-test-analysis-agent: Test Layering Analysis
   -> human-approved TP-### test point plan
-  -> bdd-agent Phase 2: BDD Feature Generation
+  -> bdd-case-design-agent: BDD Feature Generation
   -> human-approved API/UI feature content
   -> /bdd-gen writes feature files and updates the source
 ```
@@ -24,8 +24,9 @@ Raw requirement, ADO item, or source notes
 |-------|-------|----------------|--------|
 | Requirement intake | `/writeuserstories` | Parse raw input, analyze requirement intent, write business-facing story, normalize Given/When/Then ACs, preserve raw technical hints. | Confirmed Story Contract JSON or ADO-ready story plus Story Contract JSON. |
 | Solution design enrichment | `/enrichstorydesign` | Add reviewed test-relevant design evidence: API, UI, data, permissions, integrations, NFRs, observability, rollout, test data, and automation constraints. | Design-ready Story Contract JSON with approved `solutionDesign`. |
-| BDD orchestration | `/bdd-gen` | Load the confirmed or design-ready Story Contract, run review gates, invoke `bdd-agent`, write approved feature files, and update the source. | API/UI feature files plus generation summary. |
-| Test design and feature generation | `bdd-agent` | Phase 1 creates layered test points. Phase 2 converts approved test points into API/UI feature content using project standards. | Phase 1 report and Phase 2 feature generation result. |
+| BDD orchestration | `/bdd-gen` | Load the confirmed or design-ready Story Contract, run review gates, invoke `qa-test-analysis-agent` and `bdd-case-design-agent`, write approved feature files, and update the source. | API/UI feature files plus generation summary. |
+| Test analysis | `qa-test-analysis-agent` | Creates layered test points from the confirmed Story Contract using QA and FX structured products judgement. | Phase 1 Test Layering Analysis Report. |
+| BDD case design | `bdd-case-design-agent` | Converts approved test points into API/UI feature content and reusable business step pattern contracts using project standards. | Phase 2 BDD Feature Generation Result. |
 
 ## Artifact Boundaries
 
@@ -34,7 +35,7 @@ Raw requirement, ADO item, or source notes
 | Story Contract | Business goal, persona, scope, Given/When/Then ACs, observable evidence, assumptions, open questions, raw technical notes. | Feature names, feature tags, TC IDs, test cases, scenario inventory, endpoint implementation details. |
 | Solution Design | Test-relevant design evidence needed to design and automate checks. | New business behavior or unapproved scope changes. |
 | Phase 1 Test Point Plan | Validation intent, layer, polarity/selection tags, AC mapping, validation target, observable evidence, grouping key. | Feature file paths, feature tags, TC IDs, final scenario text. |
-| Phase 2 Feature Content | Feature identity, file paths, scenario grouping, Gherkin, step reuse decisions, new snippet/step gaps, run commands. | New validation intent beyond the approved Phase 1 plan. |
+| Phase 2 Feature Content | Feature identity, file paths, scenario grouping, Gherkin, Step Pattern Reuse Design, Automation Handoff, run commands. | New validation intent beyond the approved Phase 1 plan or automation implementation decisions. |
 
 ## Source Precedence
 
@@ -101,12 +102,10 @@ Allowed sources:
 
 ### 4. Phase 1 - Test Layering Analysis
 
-`/bdd-gen` invokes `bdd-agent` with:
-- `phase: phase1_test_layering`
+`/bdd-gen` invokes `qa-test-analysis-agent` with:
 - the loaded `sourcePayload` unchanged
-- project path when known
 
-`bdd-agent` reads `test-layering-methodology.md` and creates a Test Layering Analysis Report.
+`qa-test-analysis-agent` reads `test-layering-methodology.md` and creates a Test Layering Analysis Report.
 
 Phase 1 output:
 - neutral `TP-###` test point IDs
@@ -134,11 +133,10 @@ Human review gate:
 
 ### 5. Phase 2 - Feature Generation
 
-After Phase 1 approval, `/bdd-gen` invokes `bdd-agent` with:
-- `phase: phase2_feature_generation`
+After Phase 1 approval, `/bdd-gen` invokes `bdd-case-design-agent` with:
 - the same loaded `sourcePayload` unchanged
 - the approved Phase 1 report
-- project path
+- path hints for resolving `{E2E_DIR}`
 
 Phase 2 source of truth:
 - validation intent comes only from the approved Phase 1 test points
@@ -153,7 +151,7 @@ Phase 2 derives:
 - API/UI target file paths
 - file mode: `create`, `append`, or `not generated`
 - scenario grouping and Scenario Outline usage
-- step reuse decisions and new snippet/Java-step gaps
+- Step Pattern Reuse Design and Automation Handoff
 
 Feature identity:
 - `featureName`: snake_case business capability, normally `{primary_business_object}_{primary_business_action}`
@@ -164,9 +162,9 @@ Human review gate:
 - feature files use business language and correct top-level tags
 - scenarios preserve approved validation targets and observable evidence
 - compatible TPs are grouped without losing traceability
-- API scenarios use YAML-backed response contract assertion when sufficient
-- UI scenarios use snippet-level business behavior, not raw UI operations
-- missing snippets or Java steps are listed with reusable implementation guidance
+- API and UI scenarios use business-readable step patterns without implementation details
+- Step Pattern Reuse Design defines business meaning, reusable scope, and downstream owner
+- Automation Handoff avoids selecting concrete step definitions, snippets, page objects, API clients, fixtures, or helpers
 
 ### 6. Write Feature Files And Update Source
 
@@ -192,5 +190,5 @@ Source update:
 | After `/writeuserstories` | Is the behavior clear and testable as business value? |
 | After `/enrichstorydesign` | Is there enough API/UI/data/security evidence to design tests without guessing? |
 | After Phase 1 | Are we testing each behavior at the cheapest reliable layer? |
-| After Phase 2 | Are scenarios concise, reusable, traceable, and executable by the existing framework? |
+| After Phase 2 | Are scenarios concise, reusable, traceable, and ready for automation implementation without leaking implementation detail? |
 | After file write | Are the files placed correctly and ready for implementation or execution? |

@@ -1,6 +1,6 @@
 # BDD Feature Generation Standards
 
-Detailed rules for `bdd-agent` Phase 2. Phase 2 converts confirmed Phase 1 `TP-###` test points into a small set of high-value API/UI Cucumber scenarios.
+Detailed rules for `bdd-case-design-agent`. It converts confirmed Phase 1 `TP-###` test points into a small set of high-value API/UI Cucumber scenarios.
 
 ## 1. Source Boundaries
 
@@ -10,7 +10,7 @@ Detailed rules for `bdd-agent` Phase 2. Phase 2 converts confirmed Phase 1 `TP-#
 | Coverage groups/scenario count | Phase 1 `Grouping Key` + this document | Split for readability or execution correctness | Assuming one TP must equal one scenario |
 | AC coverage | Phase 1 AC mapping | Original AC text for wording only | Changing coverage decisions |
 | Validation target/evidence | Phase 1 Validation Target + Observable Evidence | None | Dropping evidence because the AC ID is covered |
-| Feature naming/path | Story title + TP names | Description/persona; endpoint as weak fallback | story module, class names, story IDs |
+| Feature naming/path | Story title + TP names | Description/persona; approved API operation wording as weak fallback | story module, class names, endpoints, story IDs |
 | API details | Approved `solutionDesign.apiDesign` | Technical notes only if solution design is missing; existing feature patterns | UI assumptions; technical notes overriding solution design |
 | API response contract | YAML contract bound to the current scenario | Existing response contract patterns | Duplicating status/schema/body assertions in feature steps |
 | UI wording | TP names + persona + `solutionDesign.uiDesign` | Description | Endpoint names |
@@ -25,8 +25,8 @@ When approved `solutionDesign` exists, do not use `technicalNotes` as the primar
 Feature files are executable business specifications. They must be readable by stakeholders and stable enough to drive or verify implementation.
 
 Rules:
-- Write the feature from expected behavior, not from existing code structure. If code already exists, use it only as implementation evidence.
-- Use domain language in `Feature`, description, scenario names, and reusable steps. Avoid Java class names, CSS selectors, DOM IDs, endpoint names as scenario names, and other technical terms unless the API step itself must call a path.
+- Write the feature from expected behavior, not from existing code structure. Existing `.feature` files may provide clean business terminology, but implementation code must not shape the Gherkin wording.
+- Use domain language in `Feature`, description, scenario names, and reusable steps. Avoid Java class names, CSS selectors, DOM IDs, endpoint names, paths, and other technical terms.
 - Use one consistent voice. Prefer third-person role language such as `maker`, `checker`, `admin`, and `the user`; do not mix it with first-person `I`.
 - One scenario proves one behavior. A scenario may assert multiple outcomes only when they are part of the same behavior and coverage group.
 - Keep scenarios short. Target 3-8 executable business steps; split the behavior or move stable setup into clear business preconditions when the flow becomes hard to review.
@@ -71,7 +71,7 @@ Derive `businessDomain` separately for file routing only:
 
 If multiple signals match, prefer the most business-facing object named in the title, description, and confirmed test points. Do not let a technical module override the business domain.
 
-Do not use story `module`, Java classes, endpoint names alone, story IDs, TC IDs, or `TP-###` in feature naming.
+Do not use story `module`, Java classes, endpoint names, story IDs, TC IDs, or `TP-###` in feature naming.
 
 ## 4. File Rules
 

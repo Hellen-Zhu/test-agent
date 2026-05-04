@@ -1,6 +1,6 @@
 # Test Design And Layering Methodology
 
-This methodology defines how `bdd-agent` Phase 1 turns a confirmed Story Contract into layered test points. It mirrors how an experienced QA engineer designs tests: understand behavior, identify what must be proven, choose the cheapest reliable layer, then group compatible validation intent for later feature generation.
+This methodology defines how `qa-test-analysis-agent` turns a confirmed Story Contract into layered test points. It mirrors how an experienced QA engineer designs tests: understand behavior, identify what must be proven, choose the cheapest reliable layer, then group compatible validation intent for later feature generation.
 
 ## Core Principle
 

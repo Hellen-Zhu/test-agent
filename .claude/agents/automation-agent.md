@@ -52,6 +52,38 @@ Use:
 
 Do not duplicate or override those detailed rules in this agent. If this file and the standards appear to conflict, follow the stricter boundary and report the inconsistency as a process gap.
 
+## Reference Resolution And Missing Docs
+
+Resolve references before changing automation code.
+
+| Reference | Required? | Missing behavior |
+|-----------|-----------|------------------|
+| `~/.claude/docs/automation-implementation-standards.md` | Yes | Stop with `PROCESS_GAP`. |
+| `~/.claude/docs/snippet-design-guide.md` | Conditional | If snippet-level implementation is needed, report `CONTEXT_GAP` and do not create or edit snippets until the guide is restored or the caller approves a convention. |
+
+When a required standards document is missing, unreadable, or clearly not the expected document:
+- Do not continue with memory, general automation knowledge, or invented framework conventions.
+- Do not silently skip the reference.
+- Do not use existing code style as a substitute for missing required standards.
+- Do not create or rewrite the missing document unless the caller explicitly asks.
+- Return only a Process Gap Report:
+
+```markdown
+# Process Gap Report
+
+**Decision:** Blocked
+**Classification:** PROCESS_GAP
+
+| Missing Reference | Purpose | Impact | Suggested Fix |
+|-------------------|---------|--------|---------------|
+| `{path}` | `{why this agent needs it}` | `{what cannot be safely implemented}` | `Restore or provide {document name}, then rerun automation-agent.` |
+```
+
+When the conditional snippet guide is missing:
+- Continue only with non-snippet-safe analysis or implementation.
+- Mark snippet-dependent steps as `CONTEXT_GAP` in the implementation report.
+- If all required bindings depend on snippets, return `Partial` or `Blocked` rather than guessing snippet conventions.
+
 ## Input
 
 The caller should provide:
@@ -64,30 +96,31 @@ The caller should provide:
 ## Workflow
 
 1. Resolve `{E2E_DIR}` from explicit input, path hints, or workspace `CLAUDE.md`.
-2. Read `~/.claude/docs/automation-implementation-standards.md`.
-3. Read `~/.claude/docs/snippet-design-guide.md` when the project uses genie snippets or snippet-level business steps.
-4. Read approved feature files or feature content. Treat these files as the golden source.
-5. Extract every step pattern from the feature files only.
-6. Scan existing automation implementation:
+2. Resolve required references. If any required reference is missing, return `PROCESS_GAP` and stop.
+3. Read `~/.claude/docs/automation-implementation-standards.md`.
+4. Read `~/.claude/docs/snippet-design-guide.md` when the project uses genie snippets or snippet-level business steps.
+5. Read approved feature files or feature content. Treat these files as the golden source.
+6. Extract every step pattern from the feature files only.
+7. Scan existing automation implementation:
    ```bash
    find {E2E_DIR}/src/test -name "*.snippet" 2>/dev/null
    grep -rn "@Given\|@When\|@Then" {E2E_DIR}/src/test/java/ --include="*.java" 2>/dev/null
    find {E2E_DIR}/src/test -type f \( -name "*Page*.java" -o -name "*Client*.java" -o -name "*Fixture*.java" -o -name "*Helper*.java" \) 2>/dev/null
    ```
-7. Build a Step Binding Map:
+8. Build a Step Binding Map:
    - exact existing match
    - parameterized existing match
    - reusable helper/page/client exists but binding missing
    - no reusable implementation found
    - `DESIGN_GAP`
-8. Implement only the missing automation artifacts approved by the caller or clearly required by the feature files.
-9. Prefer existing abstractions and package layout. Add new abstractions only when they reduce real duplication or match established framework patterns.
-10. Run the Required Output Checks in `~/.claude/docs/automation-implementation-standards.md`.
-11. Run targeted verification when available:
+9. Implement only the missing automation artifacts approved by the caller or clearly required by the feature files.
+10. Prefer existing abstractions and package layout. Add new abstractions only when they reduce real duplication or match established framework patterns.
+11. Run the Required Output Checks in `~/.claude/docs/automation-implementation-standards.md`.
+12. Run targeted verification when available:
    - Cucumber dry-run for generated tags
    - compile/test command for changed code
    - targeted API/UI scenario command when safe
-12. Return the implementation report.
+13. Return the implementation report.
 
 ## Output
 
@@ -114,6 +147,13 @@ Return this markdown report:
 | File | Change | Reason |
 |------|--------|--------|
 
+## Context Gaps
+
+| Missing Reference Or Context | Impact | Safe Action Taken | Suggested Fix |
+|------------------------------|--------|-------------------|---------------|
+
+If no context gaps exist, write: `None`.
+
 ## Design Gaps
 
 | Step Pattern | Gap | Why It Blocks Implementation | Proposed Resolution |
@@ -133,3 +173,5 @@ If no design gaps exist, write: `None`.
 ```
 
 If implementation is blocked, do not make speculative feature-file changes. Report the blocker and the exact decision needed.
+
+Exception: if a required reference is missing, return only the Process Gap Report defined above.

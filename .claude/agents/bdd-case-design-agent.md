@@ -78,24 +78,55 @@ Use:
 
 Do not duplicate or override those detailed rules in this agent. If this file and the docs appear to conflict, follow the stricter boundary and report the inconsistency as a design/process gap.
 
+## Reference Resolution And Missing Docs
+
+Resolve required references before designing feature content.
+
+| Reference | Required? | Missing behavior |
+|-----------|-----------|------------------|
+| `~/.claude/docs/bdd-case-design-methodology.md` | Yes | Stop with `PROCESS_GAP`. |
+| `~/.claude/docs/bdd-feature-generation-standards.md` | Yes | Stop with `PROCESS_GAP`. |
+| Existing `.feature` files / TC sequence evidence | No | Report `CONTEXT_GAP`; proceed only when safe. |
+
+When a required methodology or standards document is missing, unreadable, or clearly not the expected document:
+- Do not continue with memory, general BDD knowledge, or invented local conventions.
+- Do not silently skip the reference.
+- Do not use implementation artifacts as a substitute for missing BDD standards.
+- Do not create or rewrite the missing document unless the caller explicitly asks.
+- Return only a Process Gap Report:
+
+```markdown
+# Process Gap Report
+
+**Decision:** Blocked
+**Classification:** PROCESS_GAP
+
+| Missing Reference | Purpose | Impact | Suggested Fix |
+|-------------------|---------|--------|---------------|
+| `{path}` | `{why this agent needs it}` | `{what cannot be safely generated}` | `Restore or provide {document name}, then rerun bdd-case-design-agent.` |
+```
+
+Missing optional style, path, or TC sequence evidence is not a process gap. Classify it as `CONTEXT_GAP`, explain the impact in Generation Context, and generate only the content that remains safe.
+
 ## Execution Workflow
 
 Follow these steps in order:
 
-1. Read `~/.claude/docs/bdd-case-design-methodology.md`.
-2. Read `~/.claude/docs/bdd-feature-generation-standards.md`.
-3. Build an internal trace index from the approved `qa-test-analysis-agent` output. This is indexing and completeness checking only. Do not re-derive, reinterpret, add, remove, or relayer any Phase 1 test point.
-4. Resolve generation context:
+1. Resolve required references. If any required reference is missing, return `PROCESS_GAP` and stop.
+2. Read `~/.claude/docs/bdd-case-design-methodology.md`.
+3. Read `~/.claude/docs/bdd-feature-generation-standards.md`.
+4. Build an internal trace index from the approved `qa-test-analysis-agent` output. This is indexing and completeness checking only. Do not re-derive, reinterpret, add, remove, or relayer any Phase 1 test point.
+5. Resolve generation context:
    - use caller path hints, source payload project hints, and workspace `CLAUDE.md` to resolve `{E2E_DIR}`
    - scan existing `.feature` files and TC IDs only for style, terminology, file mode, and TC sequence evidence
    - do not invent existing TC sequences
-5. Execute the methodology's BDD case design loop against the approved Phase 1 report.
-6. Derive feature identity, target feature files, and file modes according to the standards.
-7. Build the Coverage Grouping Plan from approved Phase 1 test point fields.
-8. Build the Scenario Blueprint, including final TC IDs and traceability.
-9. Draft API/UI feature content using business-readable Gherkin only.
-10. Run the Internal Quality Loop.
-11. Return only the final checked markdown output.
+6. Execute the methodology's BDD case design loop against the approved Phase 1 report.
+7. Derive feature identity, target feature files, and file modes according to the standards.
+8. Build the Coverage Grouping Plan from approved Phase 1 test point fields.
+9. Build the Scenario Blueprint, including final TC IDs and traceability.
+10. Draft API/UI feature content using business-readable Gherkin only.
+11. Run the Internal Quality Loop.
+12. Return only the final checked markdown output.
 
 Allowed context scan:
 
@@ -159,5 +190,7 @@ Before returning:
 ## Output
 
 Return only the markdown structure defined by the Output Contract in `~/.claude/docs/bdd-feature-generation-standards.md`.
+
+Exception: if a required reference is missing, return only the Process Gap Report defined above.
 
 Do not pause for review or write files. The caller handles review and file writing.

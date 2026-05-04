@@ -117,6 +117,8 @@ instruction: "Read and follow ~/.claude/agents/qa-test-analysis-agent.md."
 
 Accept only the final markdown report defined by the Output Contract in `~/.claude/docs/test-layering-standards.md` after `qa-test-analysis-agent` has completed its methodology checks and standards checks.
 
+If `qa-test-analysis-agent` returns a `PROCESS_GAP`, display the Process Gap Report exactly, stop the pipeline, and ask the user to restore or provide the missing reference before rerunning `/bdd-gen`. Do not ask for Phase 1 approval and do not continue to Phase 2.
+
 Display the **complete** agent output to the user, followed by review guidance:
 
 > {Insert the complete qa-test-analysis-agent output here, unmodified.}
@@ -170,6 +172,8 @@ instruction: "Read and follow ~/.claude/agents/bdd-case-design-agent.md."
 ```
 
 Accept only the final markdown result defined by the Output Contract in `~/.claude/docs/bdd-feature-generation-standards.md` after `bdd-case-design-agent` has completed its methodology design loop, standards Design Integrity Rules, internal quality loop, and self-check. Do not accept candidate drafts or partially checked output.
+
+If `bdd-case-design-agent` returns a `PROCESS_GAP`, display the Process Gap Report exactly, stop the pipeline, and ask the user to restore or provide the missing reference before rerunning Phase 2. Do not ask for feature-content approval and do not write files.
 
 Display the **complete** agent output to the user, followed by review guidance:
 

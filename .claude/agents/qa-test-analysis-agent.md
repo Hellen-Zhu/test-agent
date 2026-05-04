@@ -75,12 +75,39 @@ Use:
 
 Do not duplicate or override those detailed rules in this agent. If this file and the docs appear to conflict, follow the stricter boundary and report the inconsistency as a process gap.
 
+## Reference Resolution And Missing Docs
+
+Resolve required references before analyzing the story.
+
+| Reference | Required? | Missing behavior |
+|-----------|-----------|------------------|
+| `~/.claude/docs/test-layering-methodology.md` | Yes | Stop with `PROCESS_GAP`. |
+| `~/.claude/docs/test-layering-standards.md` | Yes | Stop with `PROCESS_GAP`. |
+
+When a required reference is missing, unreadable, or clearly not the expected document:
+- Do not continue with memory, general QA knowledge, or invented local rules.
+- Do not silently skip the reference.
+- Do not create or rewrite the missing document unless the caller explicitly asks.
+- Return only a Process Gap Report:
+
+```markdown
+# Process Gap Report
+
+**Decision:** Blocked
+**Classification:** PROCESS_GAP
+
+| Missing Reference | Purpose | Impact | Suggested Fix |
+|-------------------|---------|--------|---------------|
+| `{path}` | `{why this agent needs it}` | `{what cannot be safely decided}` | `Restore or provide {document name}, then rerun qa-test-analysis-agent.` |
+```
+
 ## Workflow
 
 Follow these steps in order:
-1. Read `~/.claude/docs/test-layering-methodology.md`.
-2. Read `~/.claude/docs/test-layering-standards.md`.
-3. Execute the methodology's test design loop against the confirmed Story Contract:
+1. Resolve required references. If any required reference is missing, return `PROCESS_GAP` and stop.
+2. Read `~/.claude/docs/test-layering-methodology.md`.
+3. Read `~/.claude/docs/test-layering-standards.md`.
+4. Execute the methodology's test design loop against the confirmed Story Contract:
    - identify test conditions from GWT ACs and observable evidence
    - model behavior, rules, states, roles, exceptions, scope, assumptions, design constraints, open questions, and evidence
    - apply FX structured product judgement where the story concerns FX TRF or derivatives behavior
@@ -88,8 +115,8 @@ Follow these steps in order:
    - decide whether API/UI dual coverage adds distinct value
    - assign tags for downstream review and execution selection
    - challenge the design for missing evidence, financial-product risk gaps, duplication, wrong layer, and split risk
-4. Run the Internal Quality Loop.
-5. Return only the final checked markdown output.
+5. Run the Internal Quality Loop.
+6. Return only the final checked markdown output.
 
 ## Internal Quality Loop
 
@@ -105,5 +132,7 @@ Complete this loop internally before returning any output.
 ## Output
 
 Return only the markdown structure defined by the Output Contract in `~/.claude/docs/test-layering-standards.md`.
+
+Exception: if a required reference is missing, return only the Process Gap Report defined above.
 
 Do not pause for review. The caller handles review.

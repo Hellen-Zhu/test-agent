@@ -27,7 +27,7 @@ Approved test points
   -> Scenario strategy
   -> Business step pattern contract
   -> Automation handoff intent
-  -> challenge for leakage, duplication, and trace loss
+  -> check against standards for leakage, duplication, and trace loss
 ```
 
 The loop starts from approved Phase 1 test points, not from raw story re-analysis.
@@ -130,23 +130,11 @@ The Automation Handoff Contract should explain:
 
 Do not check whether a concrete Cucumber step definition already exists. Do not select Java methods, snippets, page objects, API clients, fixtures, or helpers.
 
-## 8. Challenge Questions
+## 8. Standards Relationship
 
-Challenge questions belong in methodology because they are design-review heuristics, not output format.
+This methodology intentionally does not define Phase 2 pass/fail rules. Design Integrity Rules, Required Output Checks, and the output contract live in `bdd-feature-generation-standards.md`.
 
-Before returning the Phase 2 result, challenge the design:
-
-| Question | Action |
-|----------|--------|
-| Did any scenario add behavior not present in approved Phase 1? | Remove it or report `PHASE_1_GAP`. |
-| Did any approved TP disappear from coverage groups, blueprint, feature content, or breakdown? | Add it back inside the approved boundary. |
-| Does each scenario prove one cohesive business behavior? | Split or reshape it using approved TP compatibility evidence. |
-| Are API steps expressing HTTP mechanics instead of business outcomes? | Rewrite to business API behavior. |
-| Are UI steps expressing clicks, selectors, or page objects instead of user intent? | Rewrite to business workflow language. |
-| Does the same business meaning appear with multiple step wordings? | Standardize one business step pattern. |
-| Did feature wording change to fit assumed existing glue? | Restore business wording and leave implementation reuse to `automation-agent`. |
-| Is a context gap blocking safe feature/path/TC generation? | Report `CONTEXT_GAP` instead of guessing. |
-| Does the Automation Handoff Contract design implementation internals? | Replace with owner/intent-level notes. |
+After applying the design loop, validate and repair the candidate result against those standards.
 
 ## 9. Output Relationship
 

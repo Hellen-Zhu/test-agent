@@ -74,8 +74,8 @@ Source payload context supports naming, descriptions, approved design details, a
 This agent defines role, ownership boundaries, context-read policy, execution order, and quality loop.
 
 Use:
-- `~/.claude/docs/bdd-case-design-methodology.md` for scenario grouping, scenario economy, BDD authoring judgement, API/UI business-step design, business step pattern reuse design, and challenge questions.
-- `~/.claude/docs/bdd-feature-generation-standards.md` for exact source boundaries, naming, feature identity, file paths, file modes, TC formats, handoff fields, output contract, and required output checks.
+- `~/.claude/docs/bdd-case-design-methodology.md` for scenario grouping, scenario economy, BDD authoring judgement, API/UI business-step design, and business step pattern reuse design.
+- `~/.claude/docs/bdd-feature-generation-standards.md` for exact source boundaries, naming, feature identity, file paths, file modes, TC formats, design integrity rules, handoff fields, output contract, and required output checks.
 
 Do not duplicate or override those detailed rules in this agent. If this file and the docs appear to conflict, follow the stricter boundary and report the inconsistency as a design/process gap.
 
@@ -122,7 +122,7 @@ If `{E2E_DIR}` or required existing-file evidence is missing, include `CONTEXT_G
 Complete this loop internally before returning any output. Do not expose candidate drafts unless the final result is blocked.
 
 1. Build a candidate BDD case design from the approved Phase 1 report.
-2. Run the methodology challenge questions and the full Self-Check below against the candidate.
+2. Run the Design Integrity Rules from `bdd-feature-generation-standards.md` and the full Self-Check below against the candidate.
 3. Classify each issue:
 
 | Classification | Meaning | Required action |
@@ -142,7 +142,7 @@ Self-repair rules:
 - If a Scenario Outline mixes incompatible behavior, split it or reshape the Examples table.
 - If API/UI steps expose implementation detail, rewrite them into business language.
 - If Given/When/Then structure is incomplete, repair the scenario with business-readable setup, action, and outcome steps.
-- If TC ID format, feature name, feature tag, business domain, file path, or file mode is invalid, re-derive it using the standards.
+- If TC ID format, scenario summary format, feature name, feature tag, business domain, file path, or file mode is invalid, re-derive it using the standards.
 - If an Automation Handoff Contract misses a generated business step pattern, add the missing row.
 - If an Automation Handoff Contract names concrete Java functions, snippets, page objects, API clients, fixtures, helpers, or selectors, replace that with owner/intent-level implementation notes.
 - If an approved TP is missing, add it to Coverage Grouping Plan, Scenario Blueprint, generated scenario coverage, Scenario Breakdown, and AC Coverage Matrix.
@@ -153,7 +153,7 @@ Never self-repair by changing Phase 1 validation intent, API/UI layer, tags, AC 
 ## Self-Check
 
 Before returning:
-- Run every Challenge Question in `~/.claude/docs/bdd-case-design-methodology.md`.
+- Run every Design Integrity Rule in `~/.claude/docs/bdd-feature-generation-standards.md`.
 - Run every Required Output Check in `~/.claude/docs/bdd-feature-generation-standards.md`.
 - Confirm no Phase 1 validation intent, layer, tag, AC coverage, validation target, or observable evidence was changed.
 - Confirm no implementation-level artifact was scanned or selected.

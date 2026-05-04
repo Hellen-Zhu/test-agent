@@ -169,7 +169,7 @@ pathHints:
 instruction: "Read and follow ~/.claude/agents/bdd-case-design-agent.md."
 ```
 
-Accept only the final markdown result defined by the Output Contract in `~/.claude/docs/bdd-feature-generation-standards.md` after `bdd-case-design-agent` has completed its methodology challenge questions, standards checks, internal quality loop, and self-check. Do not accept candidate drafts or partially checked output.
+Accept only the final markdown result defined by the Output Contract in `~/.claude/docs/bdd-feature-generation-standards.md` after `bdd-case-design-agent` has completed its methodology design loop, standards Design Integrity Rules, internal quality loop, and self-check. Do not accept candidate drafts or partially checked output.
 
 Display the **complete** agent output to the user, followed by review guidance:
 
@@ -185,7 +185,7 @@ Display the **complete** agent output to the user, followed by review guidance:
 > - Does the same business meaning use one consistent step pattern across scenarios?
 > - Do API/UI scenarios stay in business language without request builders, endpoints, selectors, clicks, fills, page objects, API clients, fixtures, or helper names?
 > - Does every Scenario have a complete Given/When/Then structure?
-> - Do tags and TC IDs follow naming conventions (`@TC-{FEATURE_MODULE}-API-{NNN}`, `@TC-{FEATURE_MODULE}-{SUBTYPE}-UI-{NNN}`)?
+> - Do tags, TC IDs, and scenario summaries follow naming conventions (`@TC-{FEATURE_MODULE}-API-{NNN}`, `@TC-{FEATURE_MODULE}-{SUBTYPE}-UI-{NNN}`, `Scenario: [TC-...] Should ...`)?
 > - Is the AC Coverage Matrix complete? Are there any uncovered ACs?
 > - Does Automation Handoff Contract define business meaning, reusable scope, implementation need, and downstream owner?
 > - Does Automation Handoff Contract avoid selecting concrete step definition functions or automation helper implementations?

@@ -27,7 +27,7 @@ When approved `solutionDesign` exists, do not use `technicalNotes` as the primar
 Feature files are executable business specifications. The methodology defines how to design them; this section defines the non-negotiable language constraints.
 
 Required:
-- Domain language in `Feature`, description, scenario names, and reusable steps.
+- Domain language in `Feature`, description, scenario summaries, and reusable steps.
 - One consistent third-person voice such as `maker`, `checker`, `admin`, or `the user`.
 - Business contract-level steps that can be reviewed without reading Java, Playwright selectors, request builders, or helper code.
 - Cucumber tags only for execution selection and the generated TC ID.
@@ -167,7 +167,9 @@ Scenario rules:
 - In `append` mode, use the existing max sequence for the same prefix + 1.
 - If the same file has no matching prefix, start that prefix at `001`.
 - Tags order: `@{TC-ID} @{positive|negative} @{smoke|regression}`.
-- Scenario line: `Scenario: [TC-ID] {specific English behavior}`.
+- Scenario summary format: `Scenario: [{TC-ID}] Should {specific expected business behavior}`.
+- Scenario Outline summary format: `Scenario Outline: [{TC-ID}] Should {specific expected business behavior}`.
+- The `{TC-ID}` inside the summary must exactly match the scenario's `@{TC-ID}` tag without the leading `@`.
 - Use active business wording.
 - Use third-person role language consistently; avoid mixing `I`, `the user`, and named roles in the same feature.
 - Negative names must identify rejected condition.
@@ -182,7 +184,7 @@ API feature files describe business API behavior, not HTTP mechanics or automati
 
 ```gherkin
   @TC-TRADE_CREATE-API-001 @positive @smoke
-  Scenario: [TC-TRADE_CREATE-API-001] Maker submits a valid FX TRF trade
+  Scenario: [TC-TRADE_CREATE-API-001] Should accept a valid FX TRF trade submitted by maker
     Given maker has valid FX TRF trade details
     When maker submits the FX TRF trade for booking
     Then the trade should be accepted for approval
@@ -282,12 +284,63 @@ Forbidden in Automation Handoff Contract:
 - Page object, selector, API client, fixture, helper, or Java method design.
 - Suggestions to change feature wording to fit existing code.
 
-## 11. Required Output Checks
+## 11. Design Integrity Rules
+
+These rules are mandatory for Phase 2 generation. Treat any violation as a defect to classify and repair before returning the final output.
+
+### Phase 1 Preservation Rules
+
+- Do not add scenarios, assertions, AC coverage, validation targets, or observable evidence that are not represented by approved Phase 1 test points.
+- Do not change approved Phase 1 layer, tags, AC mapping, validation target, or observable evidence.
+- Do not re-parse the raw story or ACs to create new test intent.
+- If safe generation requires changing Phase 1 intent, classify it as `PHASE_1_GAP` and do not self-repair it in Phase 2.
+
+### Coverage Rules
+
+- Every approved TP must appear exactly once in Coverage Grouping Plan, Scenario Blueprint, and Scenario Breakdown.
+- Every generated scenario must trace to one or more approved TPs.
+- Every approved validation target and observable evidence item must be asserted by generated feature content or explicitly identified as blocked by a classified gap.
+- AC Coverage Matrix must cover every AC referenced by approved Phase 1.
+
+### Grouping Rules
+
+- Group only test points with the same layer and compatible polarity.
+- Group only test points with compatible validation targets, observable evidence, setup shape, and business flow.
+- Split a candidate group when it creates a vague scenario, mixes unrelated behavior, mixes positive and negative behavior, hides evidence, or requires materially different setup.
+- Use `Scenario Outline` only for variants of the same behavior with compatible expected outcomes.
+- `Grouping Basis` must cite approved Phase 1 fields as evidence for compatibility.
+
+### Scenario Design Rules
+
+- One scenario must prove one cohesive business behavior.
+- Scenario and Scenario Outline summaries must start with `[{TC-ID}] Should ...`.
+- The TC ID in the summary must match the TC ID tag on the same scenario.
+- Scenario steps must preserve Given/When/Then completeness.
+- `Background:` may contain only stable shared setup, never the behavior under test, dynamic data preparation, or assertions.
+- Scenario summaries must be specific and active; negative scenario summaries must identify the rejected condition.
+- TC IDs, scenario tags, feature tags, and file modes must follow this standards document.
+
+### Business Language Rules
+
+- API and UI steps must use business language and stay free of implementation mechanics.
+- The same business meaning must use one consistent step pattern.
+- Feature wording must not be changed only to fit assumed existing automation glue.
+- Existing `.feature` files may influence terminology only when the wording remains clean business language.
+
+### Context And Handoff Rules
+
+- Missing path, existing feature evidence, TC sequence evidence, or other safe-generation context must be classified as `CONTEXT_GAP`.
+- Every generated business step pattern must appear in the Automation Handoff Contract.
+- Automation Handoff Contract must describe business meaning, reusable scope, implementation need, suggested owner, and notes for automation implementation.
+- Automation Handoff Contract must not name concrete Cucumber functions, snippets, Java methods, page objects, selectors, API clients, fixtures, helpers, or framework implementation designs.
+
+## 12. Required Output Checks
 
 Before returning:
 - Every approved TP is represented once in Coverage Grouping Plan, Scenario Blueprint, and Breakdown.
 - No scenario exists without an approved TP.
 - Scenario count is minimized through valid grouping without losing traceability.
+- Scenario and Scenario Outline summaries include the matching TC ID in `[TC-...] Should ...` format.
 - Scenario language follows the methodology and Business Language Standards: domain language, consistent third-person voice, one behavior per scenario, and strategic tags.
 - API and UI scenarios keep implementation mechanics out of feature steps.
 - Coverage grouping is justified by approved Phase 1 test point fields and the grouping rules above.
@@ -302,7 +355,7 @@ Before returning:
 - Automation Handoff Contract covers implementation ownership without selecting concrete automation code reuse.
 - AC Coverage Matrix covers every AC referenced by Phase 1.
 
-## 12. Output Contract
+## 13. Output Contract
 
 This section is the single detailed output contract for `bdd-case-design-agent`. Other workflow files should reference this section instead of duplicating the template.
 
@@ -353,8 +406,8 @@ If no context gaps exist, write: `None`.
 
 ## Scenario Blueprint
 
-| Coverage Group | Source TPs | Layer | Final TC ID | Scenario Name | Tags | AC Covered | Evidence Covered |
-|----------------|------------|-------|-------------|---------------|------|------------|------------------|
+| Coverage Group | Source TPs | Layer | Final TC ID | Scenario Summary | Tags | AC Covered | Evidence Covered |
+|----------------|------------|-------|-------------|------------------|------|------------|------------------|
 
 ## API Feature
 
@@ -380,8 +433,8 @@ If no context gaps exist, write: `None`.
 
 ## Scenario Breakdown
 
-| # | Coverage Group | Source TPs | TC Tag | Layer | Scenario Description | Scenario Tags | Validation Target | Evidence Covered | AC Covered |
-|---|----------------|------------|--------|-------|---------------------|---------------|-------------------|------------------|------------|
+| # | Coverage Group | Source TPs | TC Tag | Layer | Scenario Summary | Scenario Tags | Validation Target | Evidence Covered | AC Covered |
+|---|----------------|------------|--------|-------|------------------|---------------|-------------------|------------------|------------|
 
 ## AC Coverage Matrix
 

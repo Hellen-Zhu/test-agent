@@ -55,27 +55,28 @@ The caller should provide:
 ## Workflow
 
 1. Resolve `{E2E_DIR}` from explicit input, path hints, or workspace `CLAUDE.md`.
-2. Read approved feature files or feature content.
-3. Extract every step pattern from the feature files and Step Pattern Reuse Design.
-4. Scan existing automation implementation:
+2. Read `~/.claude/docs/snippet-design-guide.md` when the project uses genie snippets or snippet-level business steps.
+3. Read approved feature files or feature content.
+4. Extract every step pattern from the feature files and Step Pattern Reuse Design.
+5. Scan existing automation implementation:
    ```bash
    find {E2E_DIR}/src/test -name "*.snippet" 2>/dev/null
    grep -rn "@Given\|@When\|@Then" {E2E_DIR}/src/test/java/ --include="*.java" 2>/dev/null
    find {E2E_DIR}/src/test -type f \( -name "*Page*.java" -o -name "*Client*.java" -o -name "*Fixture*.java" -o -name "*Helper*.java" \) 2>/dev/null
    ```
-5. Build a Step Binding Map:
+6. Build a Step Binding Map:
    - exact existing match
    - parameterized existing match
    - reusable helper/page/client exists but binding missing
    - no reusable implementation found
    - `DESIGN_GAP`
-6. Implement only the missing automation artifacts approved by the caller or clearly required by the task.
-7. Prefer existing abstractions and package layout. Add new abstractions only when they reduce real duplication or match established framework patterns.
-8. Run targeted verification when available:
+7. Implement only the missing automation artifacts approved by the caller or clearly required by the task.
+8. Prefer existing abstractions and package layout. Add new abstractions only when they reduce real duplication or match established framework patterns.
+9. Run targeted verification when available:
    - Cucumber dry-run for generated tags
    - compile/test command for changed code
    - targeted API/UI scenario command when safe
-9. Return the implementation report.
+10. Return the implementation report.
 
 ## Output
 

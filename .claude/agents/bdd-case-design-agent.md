@@ -82,14 +82,14 @@ Source payload context supports naming, descriptions, approved design details, a
 
 Before generating feature content:
 1. Read `~/.claude/docs/bdd-feature-generation-standards.md`.
-2. Read only the business step pattern guidance from `~/.claude/docs/snippet-design-guide.md`; ignore automation implementation sections.
-3. Resolve `{E2E_DIR}` using caller path hints, source payload project hints, and workspace `CLAUDE.md` if needed.
-4. Optionally scan existing `.feature` files and TC IDs for style, terminology, file mode, and TC sequence evidence:
+2. Resolve `{E2E_DIR}` using caller path hints, source payload project hints, and workspace `CLAUDE.md` if needed.
+3. Optionally scan existing `.feature` files and TC IDs for style, terminology, file mode, and TC sequence evidence:
    ```bash
    find {E2E_DIR}/src/test/resources/features/api -name "*.feature" 2>/dev/null
    find {E2E_DIR}/src/test/resources/features/ui -name "*.feature" 2>/dev/null
    grep -Rho "@TC-[A-Z0-9_-]*-[A-Z0-9_-]*-[0-9][0-9][0-9]" {E2E_DIR}/src/test/resources/features 2>/dev/null
    ```
+4. Do not read `~/.claude/docs/snippet-design-guide.md` in this agent. Snippet reuse and implementation encapsulation are automation responsibilities.
 5. Do not scan `step-catalog.md`, `.snippet` files, Java step definitions, or automation source code for reuse decisions.
 
 If `{E2E_DIR}` or required existing-file evidence is missing, include `CONTEXT_GAP` in Derived Generation Context and proceed only when generation remains safe. Do not invent existing TC sequences.
@@ -149,6 +149,39 @@ Step pattern contract fields:
 - `Downstream Automation Owner`
 
 Step patterns must be generic: no story IDs, TC IDs, endpoint/class names, selectors, helper names, fixture names, or one-off wording.
+
+## Internal Quality Loop
+
+Complete this loop internally before returning any output. Do not expose candidate drafts unless the final result is blocked.
+
+1. Build a candidate BDD case design from the approved Phase 1 report.
+2. Run the full Self-Check below against the candidate.
+3. Classify each issue:
+
+| Classification | Meaning | Required action |
+|----------------|---------|-----------------|
+| `DESIGN_FIXABLE` | The issue is inside BDD/case design scope. | Fix it before final output. |
+| `PHASE_1_GAP` | The issue requires changing approved validation intent, layer, tag, AC coverage, validation target, observable evidence, or grouping key. | Do not fix. Report the gap. |
+| `CONTEXT_GAP` | Missing path, existing feature evidence, TC sequence evidence, or other context required for safe generation. | Report the gap; generate only what remains safe. |
+| `AUTOMATION_HANDOFF` | The issue concerns step definitions, snippets, Java glue, page objects, API clients, fixtures, helpers, or framework reuse. | Do not fix in feature design. Capture implementation ownership in Automation Handoff. |
+
+4. Apply all `DESIGN_FIXABLE` repairs.
+5. Re-run Self-Check after repairs.
+6. Return only the final checked markdown result.
+
+Self-repair rules:
+- If step wording is inconsistent for the same business meaning, standardize it into one business step pattern.
+- If a scenario is too long or mixes unrelated behavior, split it using approved grouping keys or readability constraints without changing approved coverage.
+- If a Scenario Outline mixes incompatible behavior, split it or reshape the Examples table.
+- If API/UI steps expose implementation detail, rewrite them into business language.
+- If Given/When/Then structure is incomplete, repair the scenario with business-readable setup, action, and outcome steps.
+- If TC ID format, feature name, feature tag, business domain, file path, or file mode is invalid, re-derive it using the standards.
+- If Step Pattern Reuse Design or Automation Handoff misses a generated business step pattern, add the missing row.
+- If Automation Handoff names concrete Java functions, snippets, page objects, API clients, fixtures, helpers, or selectors, replace that with owner/intent-level implementation notes.
+- If an approved TP is missing, add it to Coverage Grouping Plan, Scenario Blueprint, generated scenario coverage, Scenario Breakdown, and AC Coverage Matrix.
+- If an unapproved TP or behavior appears, remove the unapproved scenario or assertion.
+
+Never self-repair by changing Phase 1 validation intent, API/UI layer, tags, AC coverage, validation target, observable evidence, or grouping key. Those are `PHASE_1_GAP` items.
 
 ## Self-Check
 

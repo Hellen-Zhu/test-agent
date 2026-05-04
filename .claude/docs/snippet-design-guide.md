@@ -6,12 +6,13 @@ A design guide for creating and reusing genie snippets — both UI (genie-playwr
 
 ## Agent Boundary
 
-This guide is used differently by each agent:
+This guide is implementation-oriented and should be read by automation agents only.
 
 | Agent | Allowed use |
 |-------|-------------|
-| `bdd-case-design-agent` | Use only the business step authoring guidance: consistent domain wording, business meaning, reusable scope, and parameterization ideas. Do not inspect or select concrete step definitions/snippets. |
 | `automation-agent` | Use the implementation guidance: existing snippet reuse, Cucumber binding checks, snippet files, Java steps, page objects, API clients, fixtures, and helpers. |
+
+`bdd-case-design-agent` must not read this guide. Its business step-pattern rules live in `~/.claude/docs/bdd-feature-generation-standards.md`.
 
 Feature design must never be distorted to fit existing automation code. If implementation reuse would require technical or awkward Gherkin wording, keep the approved business step pattern and let `automation-agent` adapt the implementation.
 

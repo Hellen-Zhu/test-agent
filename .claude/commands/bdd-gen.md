@@ -147,7 +147,7 @@ Wait for user response:
 **Agent:** `bdd-case-design-agent`
 **Phase:** Phase 2 — BDD Feature Generation
 **Role:** Senior BDD + Case Design Specialist
-**Purpose:** Convert the approved Phase 1 report into business-readable API/UI feature content and reusable Step Pattern contracts. This phase owns Gherkin structure, feature file naming, TC IDs, Step Pattern Reuse Design, Automation Handoff, and run-command guidance. It must not change Phase 1 validation intent or make automation implementation reuse decisions.
+**Purpose:** Convert the approved Phase 1 report into business-readable API/UI feature content and reusable Step Pattern contracts. This phase owns Gherkin structure, feature file naming, TC IDs, Step Pattern Reuse Design, Automation Handoff, run-command guidance, and self-repair of BDD/case-design defects. It must not change Phase 1 validation intent or make automation implementation reuse decisions.
 
 Do not load step catalogs, scan snippets/Java steps, scan feature files, or derive TC sequences in `/bdd-gen`.
 Existing `.feature` style/file-mode/TC-sequence context is owned by `bdd-case-design-agent`. Step definition/snippet/Java/helper implementation reuse is owned by `automation-agent`, not by `/bdd-gen` or `bdd-case-design-agent`.
@@ -169,7 +169,7 @@ pathHints:
 instruction: "Read and follow ~/.claude/agents/bdd-case-design-agent.md."
 ```
 
-Accept only the markdown result defined by `bdd-case-design-agent` Output.
+Accept only the final markdown result defined by `bdd-case-design-agent` Output after its internal quality loop and self-check have completed. Do not accept candidate drafts or partially checked output.
 
 Display the **complete** agent output to the user, followed by review guidance:
 

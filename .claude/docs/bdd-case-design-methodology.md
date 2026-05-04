@@ -1,6 +1,6 @@
 # BDD Case Design Methodology
 
-This methodology defines how `bdd-case-design-agent` turns an approved Phase 1 test point plan into stakeholder-readable Gherkin and reusable business step pattern contracts.
+This methodology defines how `bdd-case-design-agent` turns an approved Phase 1 test point plan into stakeholder-readable Gherkin with consistent, reusable business step wording.
 
 `bdd-feature-generation-standards.md` defines exact names, paths, tags, TC ID formats, output sections, and required checks. This file defines the design thinking.
 
@@ -11,7 +11,7 @@ A feature file is a business behavior contract, not an automation adapter.
 Ask:
 
 ```text
-What business behavior must this scenario prove, and what reusable business step contract expresses it?
+What business behavior must this scenario prove, and what stable business step wording expresses it?
 ```
 
 Do not change the approved Phase 1 validation intent, layer, tags, AC mapping, validation target, or observable evidence. Phase 2 may improve scenario economy and wording only inside the approved Phase 1 boundary.
@@ -25,8 +25,8 @@ Approved test points
   -> Trace index
   -> Coverage group
   -> Scenario strategy
-  -> Business step pattern contract
-  -> Automation handoff intent
+  -> Business step pattern consistency
+  -> Automation-ready feature content
   -> check against standards for leakage, duplication, and trace loss
 ```
 
@@ -109,24 +109,16 @@ Ask:
 
 Exact allowed and forbidden UI wording is defined in `bdd-feature-generation-standards.md`.
 
-## 7. Design Business Step Pattern Reuse
+## 7. Design Business Step Pattern Consistency
 
-Phase 2 owns reuse at the business semantic layer only.
+Phase 2 owns consistency at the business semantic layer only. The feature file is the downstream golden source for automation implementation.
 
-Reuse design order:
+Consistency design order:
 1. Same business meaning inside the generated feature set -> use one identical pattern.
 2. Same actor + verb + business object + outcome -> use the same pattern.
 3. Same intent with variable product, role, status, date, currency, amount, or quantity -> define a parameterized business pattern.
 4. Existing `.feature` files use a clean business term for the same concept -> align terminology if it does not leak implementation detail.
-5. Otherwise define a new business step pattern contract.
-
-The Automation Handoff Contract should explain:
-- the step pattern
-- business meaning
-- reusable scope
-- implementation need
-- suggested downstream owner
-- notes that help automation implementation without designing implementation internals
+5. Otherwise define a new clean business step pattern in the generated feature content.
 
 Do not check whether a concrete Cucumber step definition already exists. Do not select Java methods, snippets, page objects, API clients, fixtures, or helpers.
 
@@ -140,4 +132,4 @@ After applying the design loop, validate and repair the candidate result against
 
 Output structure and exact field rules are defined in `bdd-feature-generation-standards.md`.
 
-The methodology output should let `/bdd-gen` write approved feature files and handoff files without reinterpreting Phase 2 decisions.
+The methodology output should let `/bdd-gen` write approved feature files without reinterpreting Phase 2 decisions.

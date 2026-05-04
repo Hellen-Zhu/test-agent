@@ -1,6 +1,6 @@
 # User Story To Feature File Flow
 
-This document defines the handoff from a confirmed user story to executable API/UI Cucumber feature files and persisted automation handoff files. It keeps requirement analysis, solution design, test layering, feature generation, and automation implementation as separate responsibilities.
+This document defines the handoff from a confirmed user story to executable API/UI Cucumber feature files. It keeps requirement analysis, solution design, test layering, feature generation, and automation implementation as separate responsibilities.
 
 ## End-To-End Flow
 
@@ -15,7 +15,7 @@ Raw requirement, ADO item, or source notes
   -> human-approved TP-### test point plan
   -> bdd-case-design-agent: BDD Feature Generation
   -> human-approved API/UI feature content
-  -> /bdd-gen writes feature files, writes .automation-handoff.md files, and updates the source
+  -> /bdd-gen writes feature files and updates the source
 ```
 
 ## Command Responsibilities
@@ -24,9 +24,9 @@ Raw requirement, ADO item, or source notes
 |-------|-------|----------------|--------|
 | Requirement intake | `/writeuserstories` | Parse raw input, analyze requirement intent, write business-facing story, normalize Given/When/Then ACs, preserve raw technical hints. | Confirmed Story Contract JSON or ADO-ready story plus Story Contract JSON. |
 | Solution design enrichment | `/enrichstorydesign` | Add reviewed test-relevant design evidence: API, UI, data, permissions, integrations, NFRs, observability, rollout, test data, and automation constraints. | Design-ready Story Contract JSON with approved `solutionDesign`. |
-| BDD orchestration | `/bdd-gen` | Load the confirmed or design-ready Story Contract, run review gates, invoke `qa-test-analysis-agent` and `bdd-case-design-agent`, write approved feature files, write layer-scoped automation handoff files, and update the source. | API/UI feature files, `.automation-handoff.md` files, plus generation summary. |
+| BDD orchestration | `/bdd-gen` | Load the confirmed or design-ready Story Contract, run review gates, invoke `qa-test-analysis-agent` and `bdd-case-design-agent`, write approved feature files, and update the source. | API/UI feature files plus generation summary. |
 | Test analysis | `qa-test-analysis-agent` | Creates layered test points from the confirmed Story Contract using QA and FX structured products judgement. | Phase 1 Test Layering Analysis Report. |
-| BDD case design | `bdd-case-design-agent` | Converts approved test points into API/UI feature content and reusable business step pattern contracts using project standards. | Phase 2 BDD Feature Generation Result. |
+| BDD case design | `bdd-case-design-agent` | Converts approved test points into API/UI feature content with consistent business step wording using project standards. | Phase 2 BDD Feature Generation Result. |
 
 ## Artifact Boundaries
 
@@ -35,7 +35,7 @@ Raw requirement, ADO item, or source notes
 | Story Contract | Business goal, persona, scope, Given/When/Then ACs, observable evidence, assumptions, open questions, raw technical notes. | Feature names, feature tags, TC IDs, test cases, scenario inventory, endpoint implementation details. |
 | Solution Design | Test-relevant design evidence needed to design and automate checks. | New business behavior or unapproved scope changes. |
 | Phase 1 Test Point Plan | Validation intent, layer, polarity/selection tags, AC mapping, validation target, and observable evidence. | Feature file paths, feature tags, TC IDs, scenario grouping, or final scenario text. |
-| Phase 2 Feature Content | Feature identity, feature paths, handoff paths, scenario grouping, Gherkin, Automation Handoff Contract, run commands. | New validation intent beyond the approved Phase 1 plan or automation implementation decisions. |
+| Phase 2 Feature Content | Feature identity, feature paths, scenario grouping, Gherkin, and run commands. | New validation intent beyond the approved Phase 1 plan or automation implementation decisions. |
 
 ## Agent, Methodology, Standards, And Command Maintenance
 
@@ -167,7 +167,7 @@ Phase 2 source of truth:
 - source payload supports naming, descriptions, approved design details, test data, and executable step details
 - original ACs may inform wording but must not add new test points
 
-`bdd-case-design-agent` reads `bdd-case-design-methodology.md` for design reasoning and `bdd-feature-generation-standards.md` for exact naming, path, TC, handoff, and output rules.
+`bdd-case-design-agent` reads `bdd-case-design-methodology.md` for design reasoning and `bdd-feature-generation-standards.md` for exact naming, path, TC, and output rules.
 
 Phase 2 derives:
 - `featureName`
@@ -175,10 +175,8 @@ Phase 2 derives:
 - `featureModule`, derived only from `featureTag` and used as the TC ID prefix
 - `businessDomain` for file routing
 - API/UI target file paths
-- API/UI automation handoff file paths: `features/{layer}/{businessDomain}/{featureName}.automation-handoff.md`
 - file mode: `create`, `append`, or `not generated`
 - scenario grouping and Scenario Outline usage, derived from approved Phase 1 test point fields
-- Automation Handoff Contract
 
 Feature identity:
 - `featureName`: snake_case business capability, normally `{primary_business_object}_{primary_business_action}`
@@ -190,28 +188,27 @@ Human review gate:
 - scenarios preserve approved validation targets and observable evidence
 - compatible TPs are grouped without losing traceability
 - API and UI scenarios use business-readable step patterns without implementation details
-- Automation Handoff Contract defines business meaning, reusable scope, implementation need, and downstream owner without selecting concrete step definitions, snippets, page objects, API clients, fixtures, or helpers
 
-### 6. Write Feature Files, Handoff Files, And Update Source
+### 6. Write Feature Files And Update Source
 
 After Phase 2 approval, `/bdd-gen` writes only approved feature content:
 - API files under `features/api/{businessDomain}/{featureName}.feature`
 - UI files under `features/ui/{businessDomain}/{featureName}.feature`
-- API handoff files under `features/api/{businessDomain}/{featureName}.automation-handoff.md`
-- UI handoff files under `features/ui/{businessDomain}/{featureName}.automation-handoff.md`
 - no file is created for a layer with zero approved scenarios
 
 Write rules:
 - `create` mode writes full feature content
 - `append` mode writes scenario/scenario-outline blocks only
 - existing top-level tags, `Feature:`, descriptions, and `Background:` are not duplicated
-- handoff files are layer-scoped and contain only the generated scenarios, step patterns, and automation notes for that layer
-- in `append` mode, append a new handoff batch; do not overwrite existing handoff batches
 - generated output is not expanded beyond the approved Phase 2 result
 
 Source update:
-- local JSON receives generated feature paths, automation handoff paths, scenario summary, coverage matrix, and timestamp
+- local JSON receives generated feature paths, scenario summary, coverage matrix, and timestamp
 - ADO receives a BDD generation comment and may receive the updated Story Contract JSON
+
+Automation implementation:
+- `automation-agent` consumes the written `.feature` files as the golden source for step text, TC IDs, tags, scenario grouping, and business behavior.
+- No separate automation context file is generated or required.
 
 ## Practical Control Points
 

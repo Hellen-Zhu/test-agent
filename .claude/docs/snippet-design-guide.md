@@ -12,7 +12,7 @@ This guide is implementation-oriented and should be read by automation agents on
 |-------|-------------|
 | `automation-agent` | Use the implementation guidance: existing snippet reuse, Cucumber binding checks, snippet files, Java steps, page objects, API clients, fixtures, and helpers. |
 
-`bdd-case-design-agent` must not read this guide. Its business step-pattern design methodology lives in `~/.claude/docs/bdd-case-design-methodology.md`; exact feature and handoff standards live in `~/.claude/docs/bdd-feature-generation-standards.md`.
+`bdd-case-design-agent` must not read this guide. Its business step-pattern design methodology lives in `~/.claude/docs/bdd-case-design-methodology.md`; exact feature generation standards live in `~/.claude/docs/bdd-feature-generation-standards.md`.
 
 Feature design must never be distorted to fit existing automation code. If implementation reuse would require technical or awkward Gherkin wording, keep the approved business step pattern and let `automation-agent` adapt the implementation.
 

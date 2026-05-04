@@ -1,6 +1,6 @@
 # BDD Feature Generation Standards
 
-Detailed output and contract standards for `bdd-case-design-agent`. This document defines exact source boundaries, naming rules, file rules, TC ID formats, handoff fields, required checks, and the Phase 2 output contract.
+Detailed output and contract standards for `bdd-case-design-agent`. This document defines exact source boundaries, naming rules, file rules, TC ID formats, required checks, and the Phase 2 output contract.
 
 `bdd-case-design-methodology.md` defines how to design scenarios and business step patterns. This file defines what the generated output must contain and what is allowed or forbidden.
 
@@ -80,17 +80,13 @@ Default files:
 - API: `{E2E_DIR}/src/test/resources/features/api/{businessDomain}/{featureName}.feature`
 - UI: `{E2E_DIR}/src/test/resources/features/ui/{businessDomain}/{featureName}.feature`
 
-Default automation handoff files:
-- API: `{E2E_DIR}/src/test/resources/features/api/{businessDomain}/{featureName}.automation-handoff.md`
-- UI: `{E2E_DIR}/src/test/resources/features/ui/{businessDomain}/{featureName}.automation-handoff.md`
-
 Rules:
 - API and UI are always separate files.
 - Create a file only for layers with approved test points.
 - File names are snake_case and contain no TC IDs, story IDs, `_api`, `_ui`, or `_e2e`.
 - Same feature name may exist under both `api/` and `ui/`.
 - Ignore any legacy `bddFeatureFile`, `apiFeatureFile`, or `uiFeatureFile` fields in source JSON.
-- Automation handoff files are layer-scoped and live next to their corresponding feature file.
+- Generated feature files are the golden source for `automation-agent`; do not produce separate automation context files.
 
 Existing files:
 - Read target file when present.
@@ -99,16 +95,6 @@ Existing files:
 - In `append` mode, output scenario/scenario outline blocks only.
 - In `append` mode, do not introduce a new top-level `Background:`. Put setup explicitly in the appended scenarios.
 - Do not duplicate top-level tags, `Feature:`, descriptions, or `Background:`.
-
-Automation handoff files:
-- Handoff mode is derived independently from handoff file existence for the generated layer.
-- Use `create` when the layer has generated scenarios and the handoff file does not exist.
-- Use `append` when the layer has generated scenarios and the handoff file already exists.
-- Use `not generated` when the layer has no generated scenarios.
-- In `create` mode, write a complete handoff document for that layer.
-- In `append` mode, append a new handoff batch for the newly generated scenarios only. Do not overwrite previous handoff batches.
-- In `not generated` mode, do not create a handoff file for that layer.
-- A layer handoff file must contain only step patterns and implementation notes for that layer.
 
 ## 5. Feature Level
 
@@ -231,60 +217,7 @@ Rules:
 - Multi-actor flow is allowed for handoff/lifecycle TPs.
 - Use `Given` for setup/state, `When` for action, `Then` for assertions.
 
-## 10. Automation Handoff Contract
-
-`bdd-case-design-methodology.md` defines how to design business step pattern reuse. This section defines the persisted Automation Handoff Contract.
-
-Phase 2 persists reusable business step pattern contracts in the Automation Handoff Contract. It does not inspect or decide concrete step definition, snippet, page object, API client, fixture, helper, or Java method reuse.
-
-Automation Handoff Contract must include:
-- `Step Pattern`
-- `Business Meaning`
-- `Reusable Scope`
-- `Implementation Need`
-- `Suggested Owner`
-- `Notes For Automation Agent`
-
-Rules:
-- Use business wording, not implementation wording.
-- Parameterize product, status, role, ID, currency, date, amount, and quantity when stable.
-- Avoid story-specific, TC-specific, endpoint-specific, selector-specific, or class-specific wording.
-- Do not add `[REUSE]`, `[NEW_SNIPPET_NEEDED]`, or `[NEW_JAVA_STEP_NEEDED]` markers in Phase 2.
-- Do not check whether a Cucumber step definition already exists.
-- Do not decide which concrete step definition function, snippet file, Java method, page object, API client, fixture, or helper should be reused.
-- Use `Automation Agent to resolve implementation reuse` when the downstream owner is unknown.
-
-Phase 2 should hand off implementation needs without designing implementation internals.
-
-Automation Handoff Contract is a persisted downstream contract. `/bdd-gen` writes it to:
-- API: `{E2E_DIR}/src/test/resources/features/api/{businessDomain}/{featureName}.automation-handoff.md`
-- UI: `{E2E_DIR}/src/test/resources/features/ui/{businessDomain}/{featureName}.automation-handoff.md`
-
-When both API and UI are generated, create one handoff file per generated layer. Do not put UI step patterns in the API handoff file or API step patterns in the UI handoff file.
-
-Automation Handoff Contract fields:
-
-| Field | Meaning |
-|-------|---------|
-| Step Pattern | Business step contract from the feature file. |
-| Layer | API or UI. |
-| Business Meaning | What business behavior or evidence the step represents. |
-| Reusable Scope | Where this business step pattern can be reused. |
-| Implementation Need | Existing implementation unknown / likely new implementation / likely reusable business capability. |
-| Suggested Owner | Automation Agent, API automation owner, UI automation owner, or team-specific owner. |
-| Notes For Automation Agent | Business intent, data/state considerations, and constraints that should guide implementation. |
-
-Each persisted handoff file should include:
-- feature file path for the same layer
-- generated TC tags for the same layer
-- Automation Handoff Contract rows for the same layer
-
-Forbidden in Automation Handoff Contract:
-- Specific Cucumber function names.
-- Page object, selector, API client, fixture, helper, or Java method design.
-- Suggestions to change feature wording to fit existing code.
-
-## 11. Design Integrity Rules
+## 10. Design Integrity Rules
 
 These rules are mandatory for Phase 2 generation. Treat any violation as a defect to classify and repair before returning the final output.
 
@@ -327,14 +260,11 @@ These rules are mandatory for Phase 2 generation. Treat any violation as a defec
 - Feature wording must not be changed only to fit assumed existing automation glue.
 - Existing `.feature` files may influence terminology only when the wording remains clean business language.
 
-### Context And Handoff Rules
+### Context Rules
 
 - Missing path, existing feature evidence, TC sequence evidence, or other safe-generation context must be classified as `CONTEXT_GAP`.
-- Every generated business step pattern must appear in the Automation Handoff Contract.
-- Automation Handoff Contract must describe business meaning, reusable scope, implementation need, suggested owner, and notes for automation implementation.
-- Automation Handoff Contract must not name concrete Cucumber functions, snippets, Java methods, page objects, selectors, API clients, fixtures, helpers, or framework implementation designs.
 
-## 12. Required Output Checks
+## 11. Required Output Checks
 
 Before returning:
 - Every approved TP is represented once in Coverage Grouping Plan, Scenario Blueprint, and Breakdown.
@@ -347,23 +277,19 @@ Before returning:
 - Every approved validation target and observable evidence item is asserted or explicitly covered by a generated scenario.
 - Generation Context explains evidence for object/action/module/tag/domain/path.
 - Generation Context declares each layer's file mode: `create`, `append`, or `not generated`.
-- Generation Context declares each layer's automation handoff path and mode.
 - API/UI files are separate.
 - Existing files are append-only.
-- Automation handoff files are layer-scoped and written next to the corresponding feature file.
-- Automation Handoff Contract covers every generated business step pattern.
-- Automation Handoff Contract covers implementation ownership without selecting concrete automation code reuse.
 - AC Coverage Matrix covers every AC referenced by Phase 1.
 
-## 13. Output Contract
+## 12. Output Contract
 
 This section is the single detailed output contract for `bdd-case-design-agent`. Other workflow files should reference this section instead of duplicating the template.
 
-`Generation Context` is Phase 2 generation metadata. It is not a restatement of Phase 1. It records how Phase 2 derived feature identity, file paths, file modes, handoff paths, and evidence from:
+`Generation Context` is Phase 2 generation metadata. It is not a restatement of Phase 1. It records how Phase 2 derived feature identity, file paths, file modes, and evidence from:
 - approved `qa-test-analysis-agent` output for trace and coverage constraints
 - source payload title, description, persona, and approved solution design for naming and wording evidence
 - `{E2E_DIR}` path hints and existing `.feature` files for file mode, terminology, and TC sequence evidence
-- this standards document for naming, path, tag, and handoff rules
+- this standards document for naming, path, tag, and feature-generation rules
 
 Return only this markdown structure:
 
@@ -385,12 +311,8 @@ Return only this markdown structure:
 | Business Domain | {businessDomain} | {evidence} |
 | API File | features/api/{businessDomain}/{featureName}.feature or N/A | {evidence} |
 | API Mode | create / append / not generated | {scenario count and file existence evidence} |
-| API Handoff File | features/api/{businessDomain}/{featureName}.automation-handoff.md or N/A | {evidence} |
-| API Handoff Mode | create / append / not generated | create if generated layer handoff file does not exist; append if it exists; not generated when API is not generated |
 | UI File | features/ui/{businessDomain}/{featureName}.feature or N/A | {evidence} |
 | UI Mode | create / append / not generated | {scenario count and file existence evidence} |
-| UI Handoff File | features/ui/{businessDomain}/{featureName}.automation-handoff.md or N/A | {evidence} |
-| UI Handoff Mode | create / append / not generated | create if generated layer handoff file does not exist; append if it exists; not generated when UI is not generated |
 
 ## Context Gaps
 
@@ -451,10 +373,4 @@ If no context gaps exist, write: `None`.
 {UI feature command, only when UI scenarios exist}
 ```
 
-## Automation Handoff Contract
-
-| Step Pattern | Layer | Business Meaning | Reusable Scope | Implementation Need | Suggested Owner | Notes For Automation Agent |
-|--------------|-------|------------------|----------------|---------------------|-----------------|----------------------------|
-
-Do not decide whether a concrete Cucumber step definition already exists. Write `Automation Agent to resolve implementation reuse` when implementation ownership is unknown.
 ````

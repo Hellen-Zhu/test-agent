@@ -78,77 +78,63 @@ Generate scenarios from Coverage Groups, not directly from individual test point
 
 Source payload context supports naming, descriptions, approved design details, and executable step details only. It must not add validation intent beyond confirmed Phase 1.
 
-## Required Reads
+## Standards Ownership
 
-Before generating feature content:
+This agent defines execution order, ownership boundaries, quality loop, and output contract. Detailed BDD generation rules live in `~/.claude/docs/bdd-feature-generation-standards.md`.
+
+Use the standards document for:
+- source boundaries and evidence precedence
+- naming, feature identity, file paths, and file modes
+- coverage grouping and scenario economy
+- API/UI layer rules and business-readable step pattern rules
+- Step Pattern Reuse Design and Automation Handoff rules
+- required output checks
+
+Do not duplicate or override those detailed rules in this agent. If this file and the standards appear to conflict, follow the stricter boundary and report the inconsistency as a design/process gap.
+
+## Execution Workflow
+
+Follow these steps in order:
+
 1. Read `~/.claude/docs/bdd-feature-generation-standards.md`.
-2. Resolve `{E2E_DIR}` using caller path hints, source payload project hints, and workspace `CLAUDE.md` if needed.
-3. Optionally scan existing `.feature` files and TC IDs for style, terminology, file mode, and TC sequence evidence:
-   ```bash
-   find {E2E_DIR}/src/test/resources/features/api -name "*.feature" 2>/dev/null
-   find {E2E_DIR}/src/test/resources/features/ui -name "*.feature" 2>/dev/null
-   grep -Rho "@TC-[A-Z0-9_-]*-[A-Z0-9_-]*-[0-9][0-9][0-9]" {E2E_DIR}/src/test/resources/features 2>/dev/null
-   ```
-4. Do not read `~/.claude/docs/snippet-design-guide.md` in this agent. Snippet reuse and implementation encapsulation are automation responsibilities.
-5. Do not scan `step-catalog.md`, `.snippet` files, Java step definitions, or automation source code for reuse decisions.
+2. Extract the approved Phase 1 contract into a trace map:
+   - `TP-###`
+   - layer
+   - tags
+   - AC mapping
+   - validation target
+   - observable evidence
+   - grouping key
+3. Resolve generation context:
+   - use caller path hints, source payload project hints, and workspace `CLAUDE.md` to resolve `{E2E_DIR}`
+   - scan existing `.feature` files and TC IDs only for style, terminology, file mode, and TC sequence evidence
+   - do not invent existing TC sequences
+4. Derive feature identity and target file modes according to the standards.
+5. Build the Coverage Grouping Plan from approved Phase 1 grouping keys.
+6. Build the Scenario Blueprint, including final TC IDs and traceability.
+7. Draft API/UI feature content using business-readable Gherkin only.
+8. Build Step Pattern Reuse Design at the business-semantics level.
+9. Build Automation Handoff with implementation ownership notes, not implementation design.
+10. Run the Internal Quality Loop.
+11. Return only the final checked markdown output.
 
-If `{E2E_DIR}` or required existing-file evidence is missing, include `CONTEXT_GAP` in Derived Generation Context and proceed only when generation remains safe. Do not invent existing TC sequences.
+Allowed context scan:
 
-## Generation Responsibilities
+```bash
+find {E2E_DIR}/src/test/resources/features/api -name "*.feature" 2>/dev/null
+find {E2E_DIR}/src/test/resources/features/ui -name "*.feature" 2>/dev/null
+grep -Rho "@TC-[A-Z0-9_-]*-[A-Z0-9_-]*-[0-9][0-9][0-9]" {E2E_DIR}/src/test/resources/features 2>/dev/null
+```
 
-Derive these yourself using the Phase 2 standards:
-- feature name
-- feature tag
-- feature module from `featureTag` for TC ID prefix
-- business domain
-- API/UI target feature file paths
-- API/UI file mode: `create`, `append`, or `not generated`, using the existing feature file evidence discovered here
+Forbidden context reads:
+- `~/.claude/docs/snippet-design-guide.md`
+- `step-catalog.md`
+- `.snippet` files
+- Java step definitions
+- automation source code
+- page objects, API clients, fixtures, helpers, or framework implementation files
 
-Never derive naming from story `module`, Java classes, story IDs, TC IDs, or `TP-###`.
-
-Generate separate API/UI files:
-- API: `{E2E_DIR}/src/test/resources/features/api/{businessDomain}/{featureName}.feature`
-- UI: `{E2E_DIR}/src/test/resources/features/ui/{businessDomain}/{featureName}.feature`
-
-Only generate a file for a layer that has approved test points.
-
-## Layer Rules
-
-API:
-- Top tags: `@api @{featureTag}`
-- TC ID: `TC-{FEATURE_MODULE}-API-{NNN}`
-- No API `Background:`.
-- One scenario or Scenario Outline covers one cohesive business API behavior.
-- Use Scenario Outline only for compatible data or expectation variants under the same behavior.
-- API feature steps must remain business-readable. Do not expose request builders, HTTP method/path mechanics, headers, payload files, API clients, or Java glue.
-- API scenarios describe business preconditions, submitted business requests, and expected business outcomes.
-
-UI:
-- Top tags: `@playwright @{featureTag}`
-- TC ID: `TC-{FEATURE_MODULE}-{SUBTYPE}-UI-{NNN}`
-- UI feature steps must remain business-readable. Do not expose clicks, fills, selectors, page object names, or raw genie-playwright glue.
-- `Background:` is optional and only for stable reusable setup, such as login.
-- UI scenarios cover user workflow, visible status, cross-role handoff, or lifecycle.
-
-## Step Pattern Reuse Design Rules
-
-Design reusable business step pattern contracts. Do not verify or select automation implementations.
-
-Reuse design order:
-1. Same business meaning in the current generated feature set -> use one identical step pattern.
-2. Same actor + verb + business object + outcome -> use the same pattern with parameters where useful.
-3. Same intent with variable product/status/role/date/amount -> propose a parameterized business pattern.
-4. Existing `.feature` files use a clean business term for the same concept -> align terminology when it does not leak implementation detail.
-5. Otherwise define a new business step pattern contract.
-
-Step pattern contract fields:
-- `Step Pattern`
-- `Business Meaning`
-- `Reusable Scope`
-- `Design Decision`
-- `Downstream Automation Owner`
-
-Step patterns must be generic: no story IDs, TC IDs, endpoint/class names, selectors, helper names, fixture names, or one-off wording.
+If `{E2E_DIR}` or required existing-file evidence is missing, include `CONTEXT_GAP` in Derived Generation Context and proceed only when generation remains safe.
 
 ## Internal Quality Loop
 
@@ -186,21 +172,11 @@ Never self-repair by changing Phase 1 validation intent, API/UI layer, tags, AC 
 ## Self-Check
 
 Before returning:
-- Every approved `TP-###` appears in Coverage Grouping Plan, Scenario Blueprint, and Scenario Breakdown.
-- Coverage Grouping Plan respects Phase 1 `Grouping Key` values, unless a split is required for readability or execution correctness.
-- Scenario steps assert the approved validation target and observable evidence, not just the AC ID.
-- No unapproved scenario is generated.
-- Feature language follows BDD authoring principles: domain language, third-person voice, one behavior per scenario, 3-8 steps target, strategic tags, thin reusable steps.
-- API and UI scenarios do not expose implementation mechanics.
-- Derived Generation Context explains feature module/tag/name/domain/path evidence.
-- Context Gaps is present and states `None` when all required caller context is available.
-- Existing files are appended with scenario blocks only.
-- API/UI feature sections declare their file mode. `create` outputs complete feature content; `append` outputs only new scenario/scenario outline blocks; `not generated` omits the gherkin block.
-- TC numbering follows the per-prefix sequence rule from the Phase 2 standards.
-- API and UI files are separate.
-- Step Pattern Reuse Design includes every generated business step pattern.
-- Automation Handoff identifies downstream implementation ownership without assigning concrete step definition reuse.
-- AC Coverage Matrix covers every AC referenced by the approved Phase 1 report.
+- Run every Required Output Check in `~/.claude/docs/bdd-feature-generation-standards.md`.
+- Confirm no Phase 1 validation intent, layer, tag, AC coverage, validation target, observable evidence, or grouping key was changed.
+- Confirm no implementation-level artifact was scanned or selected.
+- Confirm `PHASE_1_GAP`, `CONTEXT_GAP`, and `AUTOMATION_HANDOFF` issues are classified in the correct output section.
+- Confirm the response matches the Output contract below exactly.
 
 ## Output
 

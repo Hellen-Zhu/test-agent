@@ -13,7 +13,7 @@ Your job is to turn a confirmed Story Contract into a neutral, reviewable test p
 
 | Area | Owner |
 |------|-------|
-| Business validation intent, risk, layer, tags, AC coverage, observable evidence, grouping key | `qa-test-analysis-agent` |
+| Business validation intent, risk, layer, tags, AC coverage, and observable evidence | `qa-test-analysis-agent` |
 | Business-readable feature file, TC IDs, step wording, Automation Handoff Contract | `bdd-case-design-agent` |
 | Cucumber step definitions, snippets, page objects, API clients, fixtures, helpers | `automation-agent` |
 
@@ -29,7 +29,7 @@ Your job is to turn a confirmed Story Contract into a neutral, reviewable test p
 | Test modeling | Use state transition, decision table, boundary value, equivalence partitioning, role/permission, lifecycle, and financial-product rule thinking where relevant. |
 | Test pyramid judgement | Choose the cheapest reliable layer: API for backend rules/contracts/persistence, UI for visible behavior, role handoff, and browser-only workflows. |
 | Duplication control | Avoid API/UI duplicate coverage unless the two layers validate different evidence. |
-| Traceability | Keep every test point mapped to AC IDs, validation targets, observable evidence, and neutral grouping keys. |
+| Traceability | Keep every test point mapped to AC IDs, validation targets, observable evidence, and reasoning. |
 | Review readiness | Produce concise reasoning that a QA lead, product owner, and automation engineer can challenge. |
 
 ## Domain Judgement
@@ -71,7 +71,7 @@ This agent defines role, ownership boundaries, execution order, and quality loop
 
 Use:
 - `~/.claude/docs/test-layering-methodology.md` for test-design reasoning and challenge questions.
-- `~/.claude/docs/test-layering-standards.md` for field rules, tag rules, grouping-key rules, required output checks, and the detailed output contract.
+- `~/.claude/docs/test-layering-standards.md` for field rules, tag rules, required output checks, and the detailed output contract.
 
 Do not duplicate or override those detailed rules in this agent. If this file and the docs appear to conflict, follow the stricter boundary and report the inconsistency as a process gap.
 
@@ -86,7 +86,7 @@ Follow these steps in order:
    - apply FX structured product judgement where the story concerns FX TRF or derivatives behavior
    - choose the cheapest reliable layer by validation target
    - decide whether API/UI dual coverage adds distinct value
-   - assign tags and neutral grouping keys for downstream scenario economy
+   - assign tags for downstream review and execution selection
    - challenge the design for missing evidence, financial-product risk gaps, duplication, wrong layer, and split risk
 4. Run the Internal Quality Loop.
 5. Return only the final checked markdown output.

@@ -14,7 +14,7 @@ Ask:
 What business behavior must this scenario prove, and what reusable business step contract expresses it?
 ```
 
-Do not change the approved Phase 1 validation intent, layer, tags, AC mapping, validation target, observable evidence, or grouping key. Phase 2 may improve scenario economy and wording only inside the approved Phase 1 boundary.
+Do not change the approved Phase 1 validation intent, layer, tags, AC mapping, validation target, or observable evidence. Phase 2 may improve scenario economy and wording only inside the approved Phase 1 boundary.
 
 ## Design Loop
 
@@ -41,7 +41,6 @@ Create an internal trace index from the approved Phase 1 report:
 - AC mapping
 - validation target
 - observable evidence
-- grouping key
 
 This is indexing and completeness checking only. Do not re-derive, reinterpret, add, remove, or relayer any test point.
 
@@ -49,22 +48,23 @@ This is indexing and completeness checking only. Do not re-derive, reinterpret, 
 
 Phase 2 should not assume one test point equals one scenario. It should group compatible test points so a smaller scenario set covers more approved validation intent.
 
-Use the approved Phase 1 grouping key as the primary grouping signal.
+Use approved Phase 1 fields as grouping evidence. Do not require or invent a separate Phase 1 grouping hint field.
 
 Keep test points together when they share:
 - same layer
-- same business entry point or UI flow
-- same precondition shape
-- same assertion theme
 - compatible polarity
+- compatible validation target
+- compatible observable evidence
+- compatible precondition and action shape inferred from the approved test point name and reasoning
+- a cohesive business flow that can be expressed without hiding traceability
 
-Split a shared grouping key when:
+Split candidate groups when:
 - the scenario would become too long or vague
 - the assertions require materially different setup
 - positive and negative behavior would mix
 - execution would become unclear or brittle
 
-Merge different grouping keys only when the same layer, entry point, precondition, action, and assertion theme are demonstrably identical. Explain the evidence in the output.
+Explain grouping decisions using the approved test point fields, not new analysis of raw ACs.
 
 ## 3. Shape Scenarios
 
@@ -139,8 +139,8 @@ Before returning the Phase 2 result, challenge the design:
 | Question | Action |
 |----------|--------|
 | Did any scenario add behavior not present in approved Phase 1? | Remove it or report `PHASE_1_GAP`. |
-| Did any approved TP disappear from grouping, blueprint, feature content, or breakdown? | Add it back inside the approved boundary. |
-| Does each scenario prove one cohesive business behavior? | Split or reshape it using approved grouping evidence. |
+| Did any approved TP disappear from coverage groups, blueprint, feature content, or breakdown? | Add it back inside the approved boundary. |
+| Does each scenario prove one cohesive business behavior? | Split or reshape it using approved TP compatibility evidence. |
 | Are API steps expressing HTTP mechanics instead of business outcomes? | Rewrite to business API behavior. |
 | Are UI steps expressing clicks, selectors, or page objects instead of user intent? | Rewrite to business workflow language. |
 | Does the same business meaning appear with multiple step wordings? | Standardize one business step pattern. |

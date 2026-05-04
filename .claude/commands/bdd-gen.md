@@ -105,7 +105,7 @@ If approved `solutionDesign` exists, treat `technicalNotes` as fallback trace co
 **Agent:** `qa-test-analysis-agent`
 **Phase:** Phase 1 — Test Layering Analysis
 **Role:** Senior QA Test Analyst with FX Structured Products Domain Experience
-**Purpose:** Produce the approved-test-point candidate plan. This phase decides validation intent, test layer, traceability, risk tags, observable evidence, and grouping keys. It must not design feature files or automation steps.
+**Purpose:** Produce the approved-test-point candidate plan. This phase decides validation intent, test layer, traceability, risk tags, and observable evidence. It must not design feature files, scenario grouping, or automation steps.
 
 Use the **Agent** tool to invoke `qa-test-analysis-agent`. Pass the already loaded source payload unchanged with only the Phase 1 envelope:
 
@@ -127,7 +127,7 @@ Display the **complete** agent output to the user, followed by review guidance:
 > - Is every acceptance criterion and observable evidence item represented by an approved validation intent?
 > - Are API vs UI/E2E layer assignments correct for the validation targets?
 > - Are FX TRF / derivatives domain gaps surfaced instead of guessed?
-> - Are test point IDs, tags, and grouping keys acceptable for Phase 2 generation?
+> - Are test point IDs, tags, validation targets, and observable evidence acceptable for Phase 2 generation?
 > - Are there missing, duplicated, or wrong-layer validation points?
 >
 > **Action:**

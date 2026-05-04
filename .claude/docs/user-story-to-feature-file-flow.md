@@ -34,7 +34,7 @@ Raw requirement, ADO item, or source notes
 |----------|------|--------------|
 | Story Contract | Business goal, persona, scope, Given/When/Then ACs, observable evidence, assumptions, open questions, raw technical notes. | Feature names, feature tags, TC IDs, test cases, scenario inventory, endpoint implementation details. |
 | Solution Design | Test-relevant design evidence needed to design and automate checks. | New business behavior or unapproved scope changes. |
-| Phase 1 Test Point Plan | Validation intent, layer, polarity/selection tags, AC mapping, validation target, observable evidence, grouping key. | Feature file paths, feature tags, TC IDs, final scenario text. |
+| Phase 1 Test Point Plan | Validation intent, layer, polarity/selection tags, AC mapping, validation target, and observable evidence. | Feature file paths, feature tags, TC IDs, scenario grouping, or final scenario text. |
 | Phase 2 Feature Content | Feature identity, feature paths, handoff paths, scenario grouping, Gherkin, Automation Handoff Contract, run commands. | New validation intent beyond the approved Phase 1 plan or automation implementation decisions. |
 
 ## Agent, Methodology, Standards, And Command Maintenance
@@ -139,7 +139,6 @@ Phase 1 output:
 - AC mapping
 - validation target
 - observable evidence
-- neutral grouping key
 - reasoning and coverage matrix
 
 Phase 1 must not derive:
@@ -153,7 +152,7 @@ Phase 1 must not derive:
 Human review gate:
 - every AC and observable evidence item is covered or explicitly justified
 - layer assignments are correct
-- grouping keys are compatible for Phase 2
+- test points are atomic and explicit enough for Phase 2 grouping
 - missing, duplicated, or wrong-layer validation points are corrected
 
 ### 5. Phase 2 - Feature Generation
@@ -178,7 +177,7 @@ Phase 2 derives:
 - API/UI target file paths
 - API/UI automation handoff file paths: `features/{layer}/{businessDomain}/{featureName}.automation-handoff.md`
 - file mode: `create`, `append`, or `not generated`
-- scenario grouping and Scenario Outline usage
+- scenario grouping and Scenario Outline usage, derived from approved Phase 1 test point fields
 - Automation Handoff Contract
 
 Feature identity:

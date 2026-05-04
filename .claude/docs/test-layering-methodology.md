@@ -1,8 +1,8 @@
 # Test Design And Layering Methodology
 
-This methodology defines how `qa-test-analysis-agent` turns a confirmed Story Contract into layered test points. It mirrors how an experienced QA engineer designs tests: understand behavior, identify what must be proven, choose the cheapest reliable layer, then group compatible validation intent for later feature generation.
+This methodology defines how `qa-test-analysis-agent` turns a confirmed Story Contract into layered test points. It mirrors how an experienced QA engineer designs tests: understand behavior, identify what must be proven, choose the cheapest reliable layer, then make each validation intent explicit for later feature generation.
 
-`test-layering-standards.md` defines exact fields, tag values, grouping-key format, output structure, and required checks. This file defines the test design thinking.
+`test-layering-standards.md` defines exact fields, tag values, output structure, and required checks. This file defines the test design thinking.
 
 ## Core Principle
 
@@ -41,7 +41,6 @@ Behavior under test
   -> Risk and rule analysis
   -> Cheapest reliable layer
   -> Test point
-  -> Grouping key
   -> challenge for gaps or duplication
 ```
 
@@ -165,18 +164,20 @@ Invalid duplication:
 - UI repeats every backend validation field when API coverage is enough.
 - Full UI workflow is added for every negative data rule.
 
-## 6. Scenario Economy And Grouping
+## 6. Scenario Economy Handoff
 
-Phase 1 outputs test points, not final scenarios. Still, it must mark compatible points for Phase 2 grouping.
+Phase 1 outputs atomic test points, not grouping hints or final scenarios.
 
-Use the same neutral `Grouping Key` when test points share:
-- same layer
-- same business entry point or UI flow
-- same precondition shape
-- same assertion theme
-- compatible polarity (`@positive` or `@negative`)
+Keep each test point clear enough that Phase 2 can decide scenario economy from approved fields:
+- layer
+- polarity and selection tags
+- AC mapping
+- validation target
+- observable evidence
+- scenario name
+- reasoning
 
-The exact grouping-key format and examples are defined in `test-layering-standards.md`.
+Do not add a downstream grouping hint field or any final scenario grouping decision in Phase 1. Grouping belongs to `bdd-case-design-agent` after the test point plan is approved.
 
 ## 7. Smoke And Regression Judgement
 
@@ -207,8 +208,8 @@ Before returning the Phase 1 report, challenge the design:
 | Is a UI test only checking backend truth? | Push to API unless user visibility matters |
 | Is an API test trying to prove visual behavior? | Move to UI |
 | Are we duplicating the same value across layers? | Remove one or explain distinct value |
-| Can several API validation points become one Scenario Outline later? | Share grouping key |
-| Can several UI visible checks be one journey later? | Share grouping key |
+| Are test points atomic enough for Phase 2 to group safely? | Split compound points or sharpen validation target/evidence |
+| Could several API/UI points later be grouped without losing traceability? | Make their layer, tags, validation target, evidence, and reasoning explicit |
 | Are open questions blocking test design? | Mark as risk in reasoning |
 
 ## 9. Output Relationship

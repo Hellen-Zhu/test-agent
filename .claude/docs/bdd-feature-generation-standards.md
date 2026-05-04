@@ -9,7 +9,7 @@ Detailed output and contract standards for `bdd-case-design-agent`. This documen
 | Purpose | Source of truth | Fallback | Forbidden |
 |---------|-----------------|----------|-----------|
 | Test point existence/layer/tags | Confirmed Phase 1 report | None | Re-parsing story/ACs |
-| Coverage groups/scenario count | Phase 1 `Grouping Key` + this document | Split for readability or execution correctness | Assuming one TP must equal one scenario |
+| Coverage groups/scenario count | Approved Phase 1 test point fields + this document | Split for readability or execution correctness | Assuming one TP must equal one scenario or inventing new grouping intent from raw ACs |
 | AC coverage | Phase 1 AC mapping | Original AC text for wording only | Changing coverage decisions |
 | Validation target/evidence | Phase 1 Validation Target + Observable Evidence | None | Dropping evidence because the AC ID is covered |
 | Feature naming/path | Story title + TP names | Description/persona; approved API operation wording as weak fallback | story module, class names, endpoints, story IDs |
@@ -141,12 +141,12 @@ UI:
 Coverage Group standards:
 - One Coverage Group becomes one scenario or one Scenario Outline.
 - Every approved TP must appear in exactly one Coverage Group unless the human-approved plan explicitly says otherwise.
-- Use the confirmed Phase 1 `Grouping Key` as the primary grouping input.
+- Use approved Phase 1 layer, tags, validation target, observable evidence, AC mapping, scenario name, and reasoning as grouping inputs.
 - Preserve each group's validation target and observable evidence in scenario design.
 - A group must stay within one layer.
 - A group must have one executable flow and one clear business purpose.
 - Do not group positive and negative behavior in the same scenario or Scenario Outline.
-- Any split of a shared `Grouping Key` or merge across different `Grouping Key` values must be explained in the `Grouping Reason`.
+- The `Grouping Basis` must explain why the selected test points are compatible using approved Phase 1 fields.
 
 ## 7. Scenario Level
 
@@ -290,7 +290,7 @@ Before returning:
 - Scenario count is minimized through valid grouping without losing traceability.
 - Scenario language follows the methodology and Business Language Standards: domain language, consistent third-person voice, one behavior per scenario, and strategic tags.
 - API and UI scenarios keep implementation mechanics out of feature steps.
-- Coverage grouping is justified by Phase 1 `Grouping Key` values and the grouping rules above.
+- Coverage grouping is justified by approved Phase 1 test point fields and the grouping rules above.
 - Every approved validation target and observable evidence item is asserted or explicitly covered by a generated scenario.
 - Generation Context explains evidence for object/action/module/tag/domain/path.
 - Generation Context declares each layer's file mode: `create`, `append`, or `not generated`.
@@ -348,8 +348,8 @@ If no context gaps exist, write: `None`.
 
 ## Coverage Grouping Plan
 
-| Group ID | Layer | Source TPs | Grouping Key(s) | Validation Target(s) | Observable Evidence Covered | Grouping Reason | Scenario Strategy |
-|----------|-------|------------|-----------------|----------------------|-----------------------------|-----------------|------------------|
+| Group ID | Layer | Source TPs | Grouping Basis | Validation Target(s) | Observable Evidence Covered | Grouping Reason | Scenario Strategy |
+|----------|-------|------------|----------------|----------------------|-----------------------------|-----------------|------------------|
 
 ## Scenario Blueprint
 

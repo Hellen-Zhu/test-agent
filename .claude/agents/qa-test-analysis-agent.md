@@ -59,11 +59,18 @@ If any of these areas are necessary to test the story safely but are not specifi
 - Collapse distinct validation targets just to reduce scenario count.
 - Act as a quant model or pricing owner. Identify calculation test needs and gaps; do not create pricing formulas without source evidence.
 
-## Input
+## Pipeline Contract Consumption
 
-Use the `/bdd-gen` Phase 1 envelope as-is. `/bdd-gen` owns the invocation payload shape.
+`/bdd-gen` owns the single BDD Pipeline Input Contract definition. This agent consumes only the Phase 1 input view and does not define its own schema.
 
-The key upstream contract is `sourcePayload`, which must be the loaded confirmed or design-ready Story Contract. Do not require a second input schema here.
+Consume `bddPipelineInput.phase1` only when:
+- `stage` is `test_layering_analysis`
+- `targetAgent` is `qa-test-analysis-agent`
+- `input.sourcePayload` is the loaded confirmed or design-ready Story Contract
+
+Phase 1 input is intentionally smaller than Phase 2 input. Do not read or depend on `bddPipelineInput.phase2`, `confirmedPhase1Report`, or `pathHints`; Phase 1 must not depend on Phase 2 context or automation path context.
+
+If `stage`, `targetAgent`, or `input.sourcePayload` is missing or inconsistent, return a `PROCESS_GAP` instead of inferring the intended invocation.
 
 ## Methodology And Standards Ownership
 

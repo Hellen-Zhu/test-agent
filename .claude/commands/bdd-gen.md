@@ -12,6 +12,61 @@ This command implements the BDD segment of `~/.claude/docs/user-story-to-feature
 
 ---
 
+## BDD Pipeline Input Contract
+
+`/bdd-gen` owns the single BDD pipeline input contract definition. This does not mean Phase 1 and Phase 2 receive the same input shape. They have different input views because Phase 2 depends on the human-approved Phase 1 report and path context.
+
+Build this contract after the Story Contract is loaded. Invoke each agent with only its own phase view.
+
+```yaml
+bddPipelineInput:
+  common:
+    sourcePayload: <loaded Story Contract JSON object, unchanged>
+    sourceReference: <source JSON path or ADO work item reference>
+    pathHints:
+      explicitProjectPath: <optional --projectPath value>
+      explicitE2eDir: <optional --e2eDir value>
+      cwd: <current working directory>
+      sourceReference: <source JSON path or ADO work item reference>
+
+  phase1:
+    stage: test_layering_analysis
+    targetAgent: qa-test-analysis-agent
+    input:
+      sourcePayload: <bddPipelineInput.common.sourcePayload>
+    instruction: "Read and follow ~/.claude/agents/qa-test-analysis-agent.md."
+
+  phase2:
+    stage: bdd_feature_generation
+    targetAgent: bdd-case-design-agent
+    input:
+      sourcePayload: <bddPipelineInput.common.sourcePayload>
+      confirmedPhase1Report: <full human-approved Phase 1 markdown report>
+      pathHints: <bddPipelineInput.common.pathHints, plus any retry hint>
+    instruction: "Read and follow ~/.claude/agents/bdd-case-design-agent.md."
+```
+
+Field rules:
+
+| Field | Required for | Rule |
+|-------|--------------|------|
+| `common.sourcePayload` | Both phases | The loaded confirmed or design-ready Story Contract. It must stay unchanged. |
+| `phase1.input.sourcePayload` | Phase 1 | The only business input for test layering analysis. |
+| `phase2.input.sourcePayload` | Phase 2 | Naming, wording, and approved design context only. It must not add validation intent beyond Phase 1. |
+| `phase2.input.confirmedPhase1Report` | Phase 2 | The human-approved Phase 1 output and the source of truth for validation intent, layer, tags, AC mapping, validation target, and observable evidence. |
+| `phase2.input.pathHints` | Phase 2 | Hints only. `/bdd-gen` collects them; `bdd-case-design-agent` resolves `{E2E_DIR}`. |
+| `instruction` | Both phases | Points the invoked agent to its agent definition. |
+
+Contract rules:
+- Keep one contract definition with two phase-specific input views.
+- Do not force Phase 1 and Phase 2 into the same input shape.
+- Do not pass Phase 2-only fields such as `confirmedPhase1Report` or `pathHints` to Phase 1.
+- Do not mutate, normalize, split, or repair `sourcePayload` in `/bdd-gen`.
+- Do not put derived feature names, feature tags, file paths, TC IDs, or scenario grouping decisions into the input contract.
+- Do not pass automation implementation context such as step catalogs, snippets, Java glue, page objects, API clients, fixtures, or helpers.
+
+---
+
 ## Step 1: Parse Arguments
 
 Determine the confirmed Story Contract source from `$ARGUMENTS`.
@@ -107,13 +162,11 @@ If approved `solutionDesign` exists, treat `technicalNotes` as fallback trace co
 **Role:** Senior QA Test Analyst with FX Structured Products Domain Experience
 **Purpose:** Produce the approved-test-point candidate plan. This phase decides validation intent, test layer, traceability, risk tags, and observable evidence. It must not design feature files, scenario grouping, or automation steps.
 
-Use the **Agent** tool to invoke `qa-test-analysis-agent`. Pass the already loaded source payload unchanged with only the Phase 1 envelope:
-
-```yaml
-request: generate_test_layering_analysis
-sourcePayload: <loaded Story Contract JSON object, unchanged>
-instruction: "Read and follow ~/.claude/agents/qa-test-analysis-agent.md."
-```
+Use the **Agent** tool to invoke `qa-test-analysis-agent` with `bddPipelineInput.phase1`:
+- `stage`: `test_layering_analysis`
+- `targetAgent`: `qa-test-analysis-agent`
+- `input.sourcePayload`: loaded Story Contract JSON object, unchanged
+- `instruction`: `Read and follow ~/.claude/agents/qa-test-analysis-agent.md.`
 
 Accept only the final markdown report defined by the Output Contract in `~/.claude/docs/test-layering-standards.md` after `qa-test-analysis-agent` has completed its methodology checks and standards checks.
 
@@ -156,20 +209,13 @@ Existing `.feature` style/file-mode/TC-sequence context is owned by `bdd-case-de
 
 If Phase 2 reports `E2E_DIR` as `CONTEXT_GAP`, ask the user for an explicit path hint and re-run Phase 2 with that hint.
 
-Use the **Agent** tool to invoke `bdd-case-design-agent`. Pass the same loaded source payload unchanged with the approved Phase 1 report and only the Phase 2 envelope:
-
-```yaml
-request: generate_bdd_case_design
-sourcePayload: <loaded Story Contract JSON object, unchanged>
-confirmedPhase1Report: |
-  {full approved Phase 1 markdown report from Step 5}
-pathHints:
-  explicitProjectPath: "{--projectPath value if provided}"
-  explicitE2eDir: "{--e2eDir value if provided}"
-  cwd: "{current working directory}"
-  sourceReference: "{source JSON path or ADO reference}"
-instruction: "Read and follow ~/.claude/agents/bdd-case-design-agent.md."
-```
+Use the **Agent** tool to invoke `bdd-case-design-agent` with `bddPipelineInput.phase2`:
+- `stage`: `bdd_feature_generation`
+- `targetAgent`: `bdd-case-design-agent`
+- `input.sourcePayload`: same loaded Story Contract JSON object, unchanged
+- `input.confirmedPhase1Report`: full human-approved Phase 1 markdown report from Step 5
+- `input.pathHints`: collected hints from Step 4, plus any user-provided retry hint if Phase 2 previously reported `E2E_DIR` as `CONTEXT_GAP`
+- `instruction`: `Read and follow ~/.claude/agents/bdd-case-design-agent.md.`
 
 Accept only the final markdown result defined by the Output Contract in `~/.claude/docs/bdd-feature-generation-standards.md` after `bdd-case-design-agent` has completed its methodology design loop, standards Design Integrity Rules, internal quality loop, and self-check. Do not accept candidate drafts or partially checked output.
 

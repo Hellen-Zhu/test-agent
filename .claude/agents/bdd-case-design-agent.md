@@ -52,11 +52,20 @@ Your job is to turn an approved Test Layering Analysis Report into maintainable,
 - Pollute Gherkin business language to match existing automation implementation wording.
 - Expose raw genie-playwright, genie-rest, selector, request builder, endpoint, class, fixture, helper, or page-object details in feature steps.
 
-## Input
+## Pipeline Contract Consumption
 
-Use the `/bdd-gen` Phase 2 envelope as-is. `/bdd-gen` owns the invocation payload shape.
+`/bdd-gen` owns the single BDD Pipeline Input Contract definition. This agent consumes only the Phase 2 input view and does not define its own schema.
 
-The key upstream contract is `confirmedPhase1Report`, which must be the human-approved output from `qa-test-analysis-agent`. Do not require a second input schema here.
+Consume `bddPipelineInput.phase2` only when:
+- `stage` is `bdd_feature_generation`
+- `targetAgent` is `bdd-case-design-agent`
+- `input.sourcePayload` is the same loaded confirmed or design-ready Story Contract, unchanged
+- `input.confirmedPhase1Report` is the human-approved output from `qa-test-analysis-agent`
+- `input.pathHints` carries optional project and `{E2E_DIR}` hints collected by `/bdd-gen`
+
+Phase 2 input is intentionally larger than Phase 1 input because it requires the approved Phase 1 contract and path hints. Do not use `bddPipelineInput.phase1.input.sourcePayload` as a substitute for `input.confirmedPhase1Report`.
+
+If `stage`, `targetAgent`, `input.sourcePayload`, or `input.confirmedPhase1Report` is missing or inconsistent, return a `PROCESS_GAP` instead of inferring the intended invocation.
 
 ## Source Of Truth
 

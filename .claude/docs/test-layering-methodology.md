@@ -2,6 +2,8 @@
 
 This methodology defines how `qa-test-analysis-agent` turns a confirmed Story Contract into layered test points. It mirrors how an experienced QA engineer designs tests: understand behavior, identify what must be proven, choose the cheapest reliable layer, then group compatible validation intent for later feature generation.
 
+`test-layering-standards.md` defines exact fields, tag values, grouping-key format, output structure, and required checks. This file defines the test design thinking.
+
 ## Core Principle
 
 Layering is not based on whether the story mentions API or UI. Layering is based on the primary validation target.
@@ -91,7 +93,7 @@ Use this matrix first.
 | Same-actor chained backend workflow | API | Can be verified faster with sequential API calls |
 | Integration with external system only visible through contract/event | API or integration | UI adds little value unless user visibility matters |
 
-## 3. API Layer Rules
+## 3. API Layer Decision Heuristics
 
 Choose API when the primary question is:
 - Did the system accept or reject the business input correctly?
@@ -115,7 +117,7 @@ Reason: persistence state is backend truth
 
 API should not be selected only because technical notes contain an endpoint. The endpoint is implementation evidence, not the business validation target.
 
-## 4. UI/E2E Layer Rules
+## 4. UI/E2E Layer Decision Heuristics
 
 Choose UI/E2E when the primary question is:
 - Can the user see or use the business capability?
@@ -167,32 +169,18 @@ Invalid duplication:
 
 Phase 1 outputs test points, not final scenarios. Still, it must mark compatible points for Phase 2 grouping.
 
-Use the same `Grouping Key` when test points share:
+Use the same neutral `Grouping Key` when test points share:
 - same layer
 - same business entry point or UI flow
 - same precondition shape
 - same assertion theme
 - compatible polarity (`@positive` or `@negative`)
 
-Grouping key format:
+The exact grouping-key format and examples are defined in `test-layering-standards.md`.
 
-```text
-{layer}:{entry-point-or-flow}:{assertion-theme}
-```
+## 7. Smoke And Regression Judgement
 
-Examples:
-- `api:create-trade:validation-errors`
-- `api:create-trade:persistence`
-- `ui:create-trade:visible-affordance`
-- `ui:cancel-trade:confirmation-dialog`
-- `ui:maker-checker-lifecycle:visible-status`
-
-## 7. Tagging Rules
-
-Each test point gets:
-- exactly one layer tag: `@api` or `@playwright`
-- exactly one polarity tag: `@positive` or `@negative`
-- exactly one selection tag: `@smoke` or `@regression`
+Tag field format is defined in `test-layering-standards.md`. Use this section only to decide release-confidence value.
 
 Smoke candidates:
 - critical happy path
@@ -208,6 +196,8 @@ Regression candidates:
 
 ## 8. Challenge Questions
 
+Challenge questions belong in methodology because they are design-review heuristics, not output format.
+
 Before returning the Phase 1 report, challenge the design:
 
 | Question | Action |
@@ -221,15 +211,8 @@ Before returning the Phase 1 report, challenge the design:
 | Can several UI visible checks be one journey later? | Share grouping key |
 | Are open questions blocking test design? | Mark as risk in reasoning |
 
-## 9. Output Expectations
+## 9. Output Relationship
 
-Each Phase 1 test point should explain:
-- source AC ID
-- validation target
-- observable evidence covered
-- selected layer
-- tags
-- grouping key
-- why this layer is the cheapest reliable place to prove the behavior
+Output structure and field rules are defined in `test-layering-standards.md`.
 
-The output should make Phase 2 feature generation straightforward without reinterpreting the story.
+The methodology output should make Phase 2 feature generation straightforward without reinterpreting the story.

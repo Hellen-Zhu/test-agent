@@ -37,6 +37,31 @@ Raw requirement, ADO item, or source notes
 | Phase 1 Test Point Plan | Validation intent, layer, polarity/selection tags, AC mapping, validation target, observable evidence, grouping key. | Feature file paths, feature tags, TC IDs, final scenario text. |
 | Phase 2 Feature Content | Feature identity, feature paths, handoff paths, scenario grouping, Gherkin, Automation Handoff Contract, run commands. | New validation intent beyond the approved Phase 1 plan or automation implementation decisions. |
 
+## Agent, Methodology, Standards, And Command Maintenance
+
+Agents consume methodology and standards. They do not own detailed methodology content or detailed output contracts.
+
+| Artifact Type | Owns | Must Not Own |
+|---------------|------|--------------|
+| Agent | Role, professional skills, ownership boundary, context-read policy, execution order, internal quality loop, and which methodology/standards to apply. | Detailed output schemas, naming algorithms, tag formats, file path templates, or deep decision heuristics. |
+| Methodology | Thinking model, decision heuristics, design loop, challenge questions, and professional judgement patterns. | Exact output templates, TC ID formats, file path templates, command payloads, or write/update steps. |
+| Standards | Allowed values, naming and path rules, tag and TC formats, required fields, output contract, and mechanical quality gates. | Agent persona, tool policy, orchestration flow, or broad professional reasoning. |
+| Command | Invocation payload, review gates, file writing, source updates, and pipeline state transitions. | Test design judgement, BDD wording decisions, automation implementation decisions, or duplicated standards. |
+
+Maintenance rule:
+- Detailed input envelope lives in the command.
+- Detailed output contract lives in standards.
+- Methodology explains why and how to decide.
+- Agent references methodology and standards, then applies them inside its role boundary.
+- If the same rule appears in more than one place, keep the canonical rule in the right artifact type and replace the duplicate with a reference.
+
+Current canonical documents:
+- Phase 1 methodology: `~/.claude/docs/test-layering-methodology.md`
+- Phase 1 standards: `~/.claude/docs/test-layering-standards.md`
+- Phase 2 methodology: `~/.claude/docs/bdd-case-design-methodology.md`
+- Phase 2 standards: `~/.claude/docs/bdd-feature-generation-standards.md`
+- BDD orchestration command: `~/.claude/commands/bdd-gen.md`
+
 ## Source Precedence
 
 Use evidence in this order:
@@ -105,7 +130,7 @@ Allowed sources:
 `/bdd-gen` invokes `qa-test-analysis-agent` with:
 - the loaded `sourcePayload` unchanged
 
-`qa-test-analysis-agent` reads `test-layering-methodology.md` and creates a Test Layering Analysis Report.
+`qa-test-analysis-agent` reads `test-layering-methodology.md` for reasoning and `test-layering-standards.md` for the exact output contract, then creates a Test Layering Analysis Report.
 
 Phase 1 output:
 - neutral `TP-###` test point IDs
@@ -142,6 +167,8 @@ Phase 2 source of truth:
 - validation intent comes only from the approved Phase 1 test points
 - source payload supports naming, descriptions, approved design details, test data, and executable step details
 - original ACs may inform wording but must not add new test points
+
+`bdd-case-design-agent` reads `bdd-case-design-methodology.md` for design reasoning and `bdd-feature-generation-standards.md` for exact naming, path, TC, handoff, and output rules.
 
 Phase 2 derives:
 - `featureName`

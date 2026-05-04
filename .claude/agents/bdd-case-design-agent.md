@@ -69,38 +69,35 @@ Generate scenarios from Coverage Groups, not directly from individual test point
 
 Source payload context supports naming, descriptions, approved design details, and executable step details only. It must not add validation intent beyond confirmed Phase 1.
 
-## Standards Ownership
+## Methodology And Standards Ownership
 
-This agent defines execution order, ownership boundaries, and quality loop. Detailed BDD generation rules and the detailed output contract live in `~/.claude/docs/bdd-feature-generation-standards.md`.
+This agent defines role, ownership boundaries, context-read policy, execution order, and quality loop.
 
-Use the standards document for:
-- source boundaries and evidence precedence
-- naming, feature identity, file paths, and file modes
-- coverage grouping and scenario economy
-- API/UI layer rules and business-readable step pattern rules
-- Automation Handoff Contract rules
-- output contract and section structure
-- required output checks
+Use:
+- `~/.claude/docs/bdd-case-design-methodology.md` for scenario grouping, scenario economy, BDD authoring judgement, API/UI business-step design, business step pattern reuse design, and challenge questions.
+- `~/.claude/docs/bdd-feature-generation-standards.md` for exact source boundaries, naming, feature identity, file paths, file modes, TC formats, handoff fields, output contract, and required output checks.
 
-Do not duplicate or override those detailed rules in this agent. If this file and the standards appear to conflict, follow the stricter boundary and report the inconsistency as a design/process gap.
+Do not duplicate or override those detailed rules in this agent. If this file and the docs appear to conflict, follow the stricter boundary and report the inconsistency as a design/process gap.
 
 ## Execution Workflow
 
 Follow these steps in order:
 
-1. Read `~/.claude/docs/bdd-feature-generation-standards.md`.
-2. Build an internal trace index from the approved `qa-test-analysis-agent` output. This is indexing and completeness checking only. Do not re-derive, reinterpret, add, remove, or relayer any Phase 1 test point.
-3. Resolve generation context:
+1. Read `~/.claude/docs/bdd-case-design-methodology.md`.
+2. Read `~/.claude/docs/bdd-feature-generation-standards.md`.
+3. Build an internal trace index from the approved `qa-test-analysis-agent` output. This is indexing and completeness checking only. Do not re-derive, reinterpret, add, remove, or relayer any Phase 1 test point.
+4. Resolve generation context:
    - use caller path hints, source payload project hints, and workspace `CLAUDE.md` to resolve `{E2E_DIR}`
    - scan existing `.feature` files and TC IDs only for style, terminology, file mode, and TC sequence evidence
    - do not invent existing TC sequences
-4. Derive feature identity, target feature files, target handoff files, and file modes according to the standards.
-5. Build the Coverage Grouping Plan from approved Phase 1 grouping keys.
-6. Build the Scenario Blueprint, including final TC IDs and traceability.
-7. Draft API/UI feature content using business-readable Gherkin only.
-8. Build layer-scoped Automation Handoff Contracts with business step pattern contracts and implementation ownership notes, not implementation design.
-10. Run the Internal Quality Loop.
-11. Return only the final checked markdown output.
+5. Execute the methodology's BDD case design loop against the approved Phase 1 report.
+6. Derive feature identity, target feature files, target handoff files, and file modes according to the standards.
+7. Build the Coverage Grouping Plan from approved Phase 1 grouping keys.
+8. Build the Scenario Blueprint, including final TC IDs and traceability.
+9. Draft API/UI feature content using business-readable Gherkin only.
+10. Build layer-scoped Automation Handoff Contracts with business step pattern contracts and implementation ownership notes, not implementation design.
+11. Run the Internal Quality Loop.
+12. Return only the final checked markdown output.
 
 Allowed context scan:
 
@@ -125,7 +122,7 @@ If `{E2E_DIR}` or required existing-file evidence is missing, include `CONTEXT_G
 Complete this loop internally before returning any output. Do not expose candidate drafts unless the final result is blocked.
 
 1. Build a candidate BDD case design from the approved Phase 1 report.
-2. Run the full Self-Check below against the candidate.
+2. Run the methodology challenge questions and the full Self-Check below against the candidate.
 3. Classify each issue:
 
 | Classification | Meaning | Required action |
@@ -156,6 +153,7 @@ Never self-repair by changing Phase 1 validation intent, API/UI layer, tags, AC 
 ## Self-Check
 
 Before returning:
+- Run every Challenge Question in `~/.claude/docs/bdd-case-design-methodology.md`.
 - Run every Required Output Check in `~/.claude/docs/bdd-feature-generation-standards.md`.
 - Confirm no Phase 1 validation intent, layer, tag, AC coverage, validation target, observable evidence, or grouping key was changed.
 - Confirm no implementation-level artifact was scanned or selected.

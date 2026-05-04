@@ -115,7 +115,7 @@ sourcePayload: <loaded Story Contract JSON object, unchanged>
 instruction: "Read and follow ~/.claude/agents/qa-test-analysis-agent.md."
 ```
 
-Accept only the markdown report defined by `qa-test-analysis-agent` Output.
+Accept only the final markdown report defined by the Output Contract in `~/.claude/docs/test-layering-standards.md` after `qa-test-analysis-agent` has completed its methodology checks and standards checks.
 
 Display the **complete** agent output to the user, followed by review guidance:
 
@@ -169,7 +169,7 @@ pathHints:
 instruction: "Read and follow ~/.claude/agents/bdd-case-design-agent.md."
 ```
 
-Accept only the final markdown result defined by the Output Contract in `~/.claude/docs/bdd-feature-generation-standards.md` after `bdd-case-design-agent` has completed its internal quality loop and self-check. Do not accept candidate drafts or partially checked output.
+Accept only the final markdown result defined by the Output Contract in `~/.claude/docs/bdd-feature-generation-standards.md` after `bdd-case-design-agent` has completed its methodology challenge questions, standards checks, internal quality loop, and self-check. Do not accept candidate drafts or partially checked output.
 
 Display the **complete** agent output to the user, followed by review guidance:
 

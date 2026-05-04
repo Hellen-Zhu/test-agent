@@ -61,66 +61,49 @@ If any of these areas are necessary to test the story safely but are not specifi
 
 ## Input
 
-Use the calling command payload as-is.
+Use the `/bdd-gen` Phase 1 envelope as-is. `/bdd-gen` owns the invocation payload shape.
 
-Expected context from `/bdd-gen`:
-- `sourcePayload`: loaded Story Contract JSON object, unchanged
+The key upstream contract is `sourcePayload`, which must be the loaded confirmed or design-ready Story Contract. Do not require a second input schema here.
+
+## Methodology And Standards Ownership
+
+This agent defines role, ownership boundaries, execution order, and quality loop.
+
+Use:
+- `~/.claude/docs/test-layering-methodology.md` for test-design reasoning and challenge questions.
+- `~/.claude/docs/test-layering-standards.md` for field rules, tag rules, grouping-key rules, required output checks, and the detailed output contract.
+
+Do not duplicate or override those detailed rules in this agent. If this file and the docs appear to conflict, follow the stricter boundary and report the inconsistency as a process gap.
 
 ## Workflow
 
-Read `~/.claude/docs/test-layering-methodology.md` and execute its test design loop:
-1. Identify test conditions from GWT ACs and observable evidence.
-2. Model behavior, rules, states, roles, exceptions, scope, assumptions, design constraints, open questions, and evidence.
-3. Apply FX structured product judgement where the story concerns FX TRF or derivatives behavior.
-4. Choose the cheapest reliable layer by validation target.
-5. Decide whether API/UI dual coverage adds distinct value.
-6. Assign tags and neutral grouping keys for downstream scenario economy.
-7. Challenge the design for missing evidence, financial-product risk gaps, duplication, wrong layer, and split risk.
+Follow these steps in order:
+1. Read `~/.claude/docs/test-layering-methodology.md`.
+2. Read `~/.claude/docs/test-layering-standards.md`.
+3. Execute the methodology's test design loop against the confirmed Story Contract:
+   - identify test conditions from GWT ACs and observable evidence
+   - model behavior, rules, states, roles, exceptions, scope, assumptions, design constraints, open questions, and evidence
+   - apply FX structured product judgement where the story concerns FX TRF or derivatives behavior
+   - choose the cheapest reliable layer by validation target
+   - decide whether API/UI dual coverage adds distinct value
+   - assign tags and neutral grouping keys for downstream scenario economy
+   - challenge the design for missing evidence, financial-product risk gaps, duplication, wrong layer, and split risk
+4. Run the Internal Quality Loop.
+5. Return only the final checked markdown output.
+
+## Internal Quality Loop
+
+Complete this loop internally before returning any output.
+
+1. Build a candidate Test Layering Analysis Report from the methodology analysis.
+2. Run all challenge questions in `test-layering-methodology.md`.
+3. Run every Required Output Check in `test-layering-standards.md`.
+4. Fix issues inside test-analysis scope.
+5. Report unresolved domain/design gaps in `Domain And Design Gaps`.
+6. Re-run the standards checks.
 
 ## Output
 
-Return only this markdown report:
+Return only the markdown structure defined by the Output Contract in `~/.claude/docs/test-layering-standards.md`.
 
-```markdown
-# Test Layering Analysis Report
-
-**Story:** {story ID} - {title}
-
-## Test Point List
-
-| # | Test Point ID | Layer | Scenario Name | Tags | AC Mapping | Validation Target | Observable Evidence | Grouping Key | Reasoning |
-|---|---------------|-------|---------------|------|------------|-------------------|---------------------|--------------|-----------|
-| 1 | TP-001 | @api | Descriptive name | @positive @smoke | AC-001 | backend rule/persistence | trade is stored as Pending Approval | api:create-trade:persistence | Reasoning |
-| 2 | TP-002 | @playwright | Descriptive name | @positive @regression | AC-002 | user-visible affordance | Create Trade button is visible and enabled | ui:create-trade:visible-affordance | Reasoning |
-
-## Coverage Matrix
-
-| Dimension | API | UI/E2E | Notes |
-|-----------|-----|--------|-------|
-| Happy path | Yes/No | Yes/No | |
-| Error/negative | Yes/No | Yes/No | |
-| Boundary values | Yes/No | Yes/No | |
-| Business rules | Yes/No | Yes/No | |
-| Cross-role flow | Yes/No | Yes/No | maker to checker |
-| State lifecycle | Yes/No | Yes/No | create to approve to live |
-| Data persistence | Yes/No | Yes/No | |
-
-## Domain And Design Gaps
-
-| Gap ID | Area | Gap | Impact | Suggested Owner |
-|--------|------|-----|--------|-----------------|
-
-If no gaps exist, write: `None`.
-```
-
-Rules:
-- Every AC must appear in at least one test point.
-- Every observable evidence item must be covered by at least one test point or explicitly justified in reasoning.
-- Split compound ACs into multiple test points when behaviors differ.
-- Scenario names must be English, descriptive, and specific.
-- `TP-###` is sequential and neutral; never include module/domain/file naming.
-- Tags are limited to `@positive`, `@negative`, `@smoke`, `@regression`.
-- Each test point must include exactly one polarity tag (`@positive` or `@negative`) and exactly one selection tag (`@smoke` or `@regression`).
-- `Grouping Key` identifies compatible test points for downstream scenario grouping. Use the same key only when layer, executable entry point, precondition, and assertion theme are compatible.
-- `Grouping Key` must be neutral: no feature tags, business domains, file paths, story IDs, TC IDs, or module names.
-- Do not pause for review; the caller handles review.
+Do not pause for review. The caller handles review.

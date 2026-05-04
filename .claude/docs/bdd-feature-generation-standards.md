@@ -1,6 +1,8 @@
 # BDD Feature Generation Standards
 
-Detailed rules for `bdd-case-design-agent`. It converts confirmed Phase 1 `TP-###` test points into a small set of high-value API/UI Cucumber scenarios.
+Detailed output and contract standards for `bdd-case-design-agent`. This document defines exact source boundaries, naming rules, file rules, TC ID formats, handoff fields, required checks, and the Phase 2 output contract.
+
+`bdd-case-design-methodology.md` defines how to design scenarios and business step patterns. This file defines what the generated output must contain and what is allowed or forbidden.
 
 ## 1. Source Boundaries
 
@@ -20,21 +22,20 @@ If Phase 1 has no approved test point for a behavior, do not generate a scenario
 
 When approved `solutionDesign` exists, do not use `technicalNotes` as the primary source for API paths, UI wording, response contracts, extra assertions, or test data. If `technicalNotes` conflicts with approved `solutionDesign`, use `solutionDesign` and mention the conflict in derivation evidence when relevant.
 
-## 2. BDD Authoring Principles
+## 2. Business Language Standards
 
-Feature files are executable business specifications. They must be readable by stakeholders and stable enough to drive or verify implementation.
+Feature files are executable business specifications. The methodology defines how to design them; this section defines the non-negotiable language constraints.
 
-Rules:
-- Write the feature from expected behavior, not from existing code structure. Existing `.feature` files may provide clean business terminology, but implementation code must not shape the Gherkin wording.
-- Use domain language in `Feature`, description, scenario names, and reusable steps. Avoid Java class names, CSS selectors, DOM IDs, endpoint names, paths, and other technical terms.
-- Use one consistent voice. Prefer third-person role language such as `maker`, `checker`, `admin`, and `the user`; do not mix it with first-person `I`.
-- One scenario proves one behavior. A scenario may assert multiple outcomes only when they are part of the same behavior and coverage group.
-- Keep scenarios short. Target 3-8 executable business steps; split the behavior or move stable setup into clear business preconditions when the flow becomes hard to review.
-- Use `Background:` only for shared stable `Given` setup. Do not hide behavior under test, dynamic data preparation, or assertions in `Background:`.
-- Use `Scenario Outline` only for data or expectation variants of the same behavior. Do not mix positive and negative examples in one outline.
-- Use tags for execution selection, not metadata. Do not add story IDs, AC IDs, modules, domains, or arbitrary labels as Cucumber tags.
-- Keep feature steps at the business contract level. Downstream automation may implement them with snippets, step definitions, page objects, service clients, fixtures, or helpers, but those implementation details must not leak into feature files.
-- Treat the generated feature as a stakeholder review artifact. The business behavior should be understandable without reading Java, Playwright selectors, or request builder code.
+Required:
+- Domain language in `Feature`, description, scenario names, and reusable steps.
+- One consistent third-person voice such as `maker`, `checker`, `admin`, or `the user`.
+- Business contract-level steps that can be reviewed without reading Java, Playwright selectors, request builders, or helper code.
+- Cucumber tags only for execution selection and the generated TC ID.
+
+Forbidden:
+- Java class names, Cucumber function names, snippets, CSS selectors, DOM IDs, endpoint paths, payload files, request builders, response matcher names, page objects, API clients, fixtures, helpers, or framework wording.
+- Tags for story IDs, AC IDs, modules, domains, or arbitrary metadata.
+- Feature wording changed only to fit assumed existing automation glue.
 
 ## 3. Naming Rules
 
@@ -135,41 +136,17 @@ UI:
 
 ## 6. Coverage Grouping
 
-Do not assume one test point equals one scenario. Phase 2 should group compatible test points so a smaller scenario set covers more approved validation intent.
+`bdd-case-design-methodology.md` defines how to decide grouping. This section defines the exact output constraints.
 
-Coverage Group rules:
+Coverage Group standards:
 - One Coverage Group becomes one scenario or one Scenario Outline.
 - Every approved TP must appear in exactly one Coverage Group unless the human-approved plan explicitly says otherwise.
 - Use the confirmed Phase 1 `Grouping Key` as the primary grouping input.
 - Preserve each group's validation target and observable evidence in scenario design.
-- Test points with the same `Grouping Key` should normally stay in the same group.
-- Split a shared `Grouping Key` only when execution, readability, or assertion strategy would become unclear.
-- Merge different `Grouping Key` values only when the same layer, entry point, precondition, action, and assertion theme are demonstrably identical; explain the evidence in the grouping reason.
 - A group must stay within one layer.
 - A group must have one executable flow and one clear business purpose.
-- Do not group positive and negative behavior in the same scenario or Scenario Outline. Scenario-level polarity tags must remain unambiguous.
-
-Good grouping candidates:
-
-| Compatible TPs | Scenario strategy |
-|----------------|------------------|
-| Same API business operation + same precondition + different invalid fields | One API `Scenario Outline` |
-| Same API business operation + same success outcome + persistence evidence | One API scenario with multiple assertions |
-| Same UI journey + multiple visible status checks | One UI journey scenario |
-| Same lifecycle path + maker/checker handoff + final state checks | One UI lifecycle scenario |
-
-Do not group when:
-- Layers differ.
-- Grouping keys indicate different entry points, preconditions, or assertion themes.
-- Preconditions differ materially.
-- The actions under test are different business flows.
-- Failure handling differs enough to require different assertions.
-- Grouping would make the scenario name vague or the steps hard to read.
-
-UI scenario economy:
-- Prefer 1-3 key UI journeys per feature.
-- Push field validation, boundary values, data transformations, and error-code checks down to API.
-- UI should prove the critical user path and visible business state, not duplicate every API rule.
+- Do not group positive and negative behavior in the same scenario or Scenario Outline.
+- Any split of a shared `Grouping Key` or merge across different `Grouping Key` values must be explained in the `Grouping Reason`.
 
 ## 7. Scenario Level
 
@@ -197,7 +174,9 @@ Scenario rules:
 - Use `Scenario Outline` for one behavior repeated over multiple examples.
 - Do not combine positive and negative behaviors in the same scenario or Scenario Outline.
 
-## 8. API Step Pattern Rules
+## 8. API Step Pattern Standards
+
+`bdd-case-design-methodology.md` defines how to design API business steps. This section defines allowed and forbidden API step wording.
 
 API feature files describe business API behavior, not HTTP mechanics or automation glue.
 
@@ -227,7 +206,9 @@ Assertion design table:
 | Database persistence, audit record, emitted event, asynchronous state, downstream side effect | Business evidence step stating the persisted/audit/event/side-effect outcome. |
 | UI-visible evidence such as button, dialog, banner, or blotter status | UI scenario, not API assertion. |
 
-## 9. UI Step Pattern Rules
+## 9. UI Step Pattern Standards
+
+`bdd-case-design-methodology.md` defines how to design UI business steps. This section defines allowed and forbidden UI step wording.
 
 UI feature files contain business-intent steps only.
 
@@ -250,14 +231,9 @@ Rules:
 
 ## 10. Automation Handoff Contract
 
-Phase 2 designs reusable business step pattern contracts and persists them in the Automation Handoff Contract. It does not inspect or decide concrete step definition, snippet, page object, API client, fixture, helper, or Java method reuse.
+`bdd-case-design-methodology.md` defines how to design business step pattern reuse. This section defines the persisted Automation Handoff Contract.
 
-Reuse design order:
-1. Same business meaning inside the generated feature set -> use one identical pattern.
-2. Same actor + verb + business object + outcome -> use the same pattern.
-3. Same intent with variable product/status/role/date/amount -> define a parameterized business pattern.
-4. Existing `.feature` files use a clean business term for the same concept -> align terminology if it does not leak implementation detail.
-5. Otherwise define a new business step pattern contract.
+Phase 2 persists reusable business step pattern contracts in the Automation Handoff Contract. It does not inspect or decide concrete step definition, snippet, page object, API client, fixture, helper, or Java method reuse.
 
 Automation Handoff Contract must include:
 - `Step Pattern`
@@ -312,7 +288,7 @@ Before returning:
 - Every approved TP is represented once in Coverage Grouping Plan, Scenario Blueprint, and Breakdown.
 - No scenario exists without an approved TP.
 - Scenario count is minimized through valid grouping without losing traceability.
-- Scenario language follows the BDD authoring principles: domain language, consistent third-person voice, one behavior per scenario, and strategic tags.
+- Scenario language follows the methodology and Business Language Standards: domain language, consistent third-person voice, one behavior per scenario, and strategic tags.
 - API and UI scenarios keep implementation mechanics out of feature steps.
 - Coverage grouping is justified by Phase 1 `Grouping Key` values and the grouping rules above.
 - Every approved validation target and observable evidence item is asserted or explicitly covered by a generated scenario.

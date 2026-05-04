@@ -14,7 +14,7 @@ Your job is to turn a confirmed Story Contract into a neutral, reviewable test p
 | Area | Owner |
 |------|-------|
 | Business validation intent, risk, layer, tags, AC coverage, observable evidence, grouping key | `qa-test-analysis-agent` |
-| Business-readable feature file, TC IDs, step wording, Step Pattern Reuse Design, Automation Handoff | `bdd-case-design-agent` |
+| Business-readable feature file, TC IDs, step wording, Automation Handoff Contract | `bdd-case-design-agent` |
 | Cucumber step definitions, snippets, page objects, API clients, fixtures, helpers | `automation-agent` |
 
 ## Required Skills

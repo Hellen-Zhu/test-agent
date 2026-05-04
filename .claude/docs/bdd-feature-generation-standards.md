@@ -79,12 +79,17 @@ Default files:
 - API: `{E2E_DIR}/src/test/resources/features/api/{businessDomain}/{featureName}.feature`
 - UI: `{E2E_DIR}/src/test/resources/features/ui/{businessDomain}/{featureName}.feature`
 
+Default automation handoff files:
+- API: `{E2E_DIR}/src/test/resources/features/api/{businessDomain}/{featureName}.automation-handoff.md`
+- UI: `{E2E_DIR}/src/test/resources/features/ui/{businessDomain}/{featureName}.automation-handoff.md`
+
 Rules:
 - API and UI are always separate files.
 - Create a file only for layers with approved test points.
 - File names are snake_case and contain no TC IDs, story IDs, `_api`, `_ui`, or `_e2e`.
 - Same feature name may exist under both `api/` and `ui/`.
 - Ignore any legacy `bddFeatureFile`, `apiFeatureFile`, or `uiFeatureFile` fields in source JSON.
+- Automation handoff files are layer-scoped and live next to their corresponding feature file.
 
 Existing files:
 - Read target file when present.
@@ -93,6 +98,16 @@ Existing files:
 - In `append` mode, output scenario/scenario outline blocks only.
 - In `append` mode, do not introduce a new top-level `Background:`. Put setup explicitly in the appended scenarios.
 - Do not duplicate top-level tags, `Feature:`, descriptions, or `Background:`.
+
+Automation handoff files:
+- Handoff mode is derived independently from handoff file existence for the generated layer.
+- Use `create` when the layer has generated scenarios and the handoff file does not exist.
+- Use `append` when the layer has generated scenarios and the handoff file already exists.
+- Use `not generated` when the layer has no generated scenarios.
+- In `create` mode, write a complete handoff document for that layer.
+- In `append` mode, append a new handoff batch for the newly generated scenarios only. Do not overwrite previous handoff batches.
+- In `not generated` mode, do not create a handoff file for that layer.
+- A layer handoff file must contain only step patterns and implementation notes for that layer.
 
 ## 5. Feature Level
 
@@ -233,9 +248,9 @@ Rules:
 - Multi-actor flow is allowed for handoff/lifecycle TPs.
 - Use `Given` for setup/state, `When` for action, `Then` for assertions.
 
-## 10. Step Pattern Reuse Design
+## 10. Automation Handoff Contract
 
-Phase 2 designs reusable business step pattern contracts. It does not inspect or decide concrete step definition, snippet, page object, API client, fixture, helper, or Java method reuse.
+Phase 2 designs reusable business step pattern contracts and persists them in the Automation Handoff Contract. It does not inspect or decide concrete step definition, snippet, page object, API client, fixture, helper, or Java method reuse.
 
 Reuse design order:
 1. Same business meaning inside the generated feature set -> use one identical pattern.
@@ -244,12 +259,13 @@ Reuse design order:
 4. Existing `.feature` files use a clean business term for the same concept -> align terminology if it does not leak implementation detail.
 5. Otherwise define a new business step pattern contract.
 
-Step Pattern Reuse Design must include:
+Automation Handoff Contract must include:
 - `Step Pattern`
 - `Business Meaning`
 - `Reusable Scope`
-- `Design Decision`
-- `Downstream Automation Owner`
+- `Implementation Need`
+- `Suggested Owner`
+- `Notes For Automation Agent`
 
 Rules:
 - Use business wording, not implementation wording.
@@ -260,21 +276,32 @@ Rules:
 - Do not decide which concrete step definition function, snippet file, Java method, page object, API client, fixture, or helper should be reused.
 - Use `Automation Agent to resolve implementation reuse` when the downstream owner is unknown.
 
-## 10.1 Automation Handoff
-
 Phase 2 should hand off implementation needs without designing implementation internals.
 
-Automation Handoff must include:
+Automation Handoff Contract is a persisted downstream contract. `/bdd-gen` writes it to:
+- API: `{E2E_DIR}/src/test/resources/features/api/{businessDomain}/{featureName}.automation-handoff.md`
+- UI: `{E2E_DIR}/src/test/resources/features/ui/{businessDomain}/{featureName}.automation-handoff.md`
+
+When both API and UI are generated, create one handoff file per generated layer. Do not put UI step patterns in the API handoff file or API step patterns in the UI handoff file.
+
+Automation Handoff Contract fields:
 
 | Field | Meaning |
 |-------|---------|
 | Step Pattern | Business step contract from the feature file. |
 | Layer | API or UI. |
+| Business Meaning | What business behavior or evidence the step represents. |
+| Reusable Scope | Where this business step pattern can be reused. |
 | Implementation Need | Existing implementation unknown / likely new implementation / likely reusable business capability. |
 | Suggested Owner | Automation Agent, API automation owner, UI automation owner, or team-specific owner. |
 | Notes For Automation Agent | Business intent, data/state considerations, and constraints that should guide implementation. |
 
-Forbidden in Automation Handoff:
+Each persisted handoff file should include:
+- feature file path for the same layer
+- generated TC tags for the same layer
+- Automation Handoff Contract rows for the same layer
+
+Forbidden in Automation Handoff Contract:
 - Specific Cucumber function names.
 - Page object, selector, API client, fixture, helper, or Java method design.
 - Suggestions to change feature wording to fit existing code.
@@ -289,10 +316,116 @@ Before returning:
 - API and UI scenarios keep implementation mechanics out of feature steps.
 - Coverage grouping is justified by Phase 1 `Grouping Key` values and the grouping rules above.
 - Every approved validation target and observable evidence item is asserted or explicitly covered by a generated scenario.
-- Derived context explains evidence for object/action/module/tag/domain/path.
-- Derived context declares each layer's file mode: `create`, `append`, or `not generated`.
+- Generation Context explains evidence for object/action/module/tag/domain/path.
+- Generation Context declares each layer's file mode: `create`, `append`, or `not generated`.
+- Generation Context declares each layer's automation handoff path and mode.
 - API/UI files are separate.
 - Existing files are append-only.
-- Step Pattern Reuse Design covers every generated business step pattern.
-- Automation Handoff covers implementation ownership without selecting concrete automation code reuse.
+- Automation handoff files are layer-scoped and written next to the corresponding feature file.
+- Automation Handoff Contract covers every generated business step pattern.
+- Automation Handoff Contract covers implementation ownership without selecting concrete automation code reuse.
 - AC Coverage Matrix covers every AC referenced by Phase 1.
+
+## 12. Output Contract
+
+This section is the single detailed output contract for `bdd-case-design-agent`. Other workflow files should reference this section instead of duplicating the template.
+
+`Generation Context` is Phase 2 generation metadata. It is not a restatement of Phase 1. It records how Phase 2 derived feature identity, file paths, file modes, handoff paths, and evidence from:
+- approved `qa-test-analysis-agent` output for trace and coverage constraints
+- source payload title, description, persona, and approved solution design for naming and wording evidence
+- `{E2E_DIR}` path hints and existing `.feature` files for file mode, terminology, and TC sequence evidence
+- this standards document for naming, path, tag, and handoff rules
+
+Return only this markdown structure:
+
+````markdown
+# BDD Feature Generation Result
+
+**Business Domain:** {businessDomain}
+**Feature Name:** {featureName}
+**Feature Tag:** `@{featureTag}`
+**Feature Module:** {featureModule}
+
+## Generation Context
+
+| Field | Value | Derivation Evidence |
+|-------|-------|---------------------|
+| Feature Name | {featureName} | {evidence} |
+| Feature Tag Name | {featureTag} | {evidence} |
+| Feature Module | {featureModule} | Uppercase featureTag for TC ID prefix |
+| Business Domain | {businessDomain} | {evidence} |
+| API File | features/api/{businessDomain}/{featureName}.feature or N/A | {evidence} |
+| API Mode | create / append / not generated | {scenario count and file existence evidence} |
+| API Handoff File | features/api/{businessDomain}/{featureName}.automation-handoff.md or N/A | {evidence} |
+| API Handoff Mode | create / append / not generated | create if generated layer handoff file does not exist; append if it exists; not generated when API is not generated |
+| UI File | features/ui/{businessDomain}/{featureName}.feature or N/A | {evidence} |
+| UI Mode | create / append / not generated | {scenario count and file existence evidence} |
+| UI Handoff File | features/ui/{businessDomain}/{featureName}.automation-handoff.md or N/A | {evidence} |
+| UI Handoff Mode | create / append / not generated | create if generated layer handoff file does not exist; append if it exists; not generated when UI is not generated |
+
+## Context Gaps
+
+| Context | Gap | Impact | Action |
+|---------|-----|--------|--------|
+
+If no context gaps exist, write: `None`.
+
+## Coverage Grouping Plan
+
+| Group ID | Layer | Source TPs | Grouping Key(s) | Validation Target(s) | Observable Evidence Covered | Grouping Reason | Scenario Strategy |
+|----------|-------|------------|-----------------|----------------------|-----------------------------|-----------------|------------------|
+
+## Scenario Blueprint
+
+| Coverage Group | Source TPs | Layer | Final TC ID | Scenario Name | Tags | AC Covered | Evidence Covered |
+|----------------|------------|-------|-------------|---------------|------|------------|------------------|
+
+## API Feature
+
+**File:** `features/api/{businessDomain}/{featureName}.feature`
+**Mode:** create / append / not generated
+**Feature tags:** `@api @{featureTag}`
+**Scenario count:** {N}
+
+```gherkin
+{complete API feature content for create mode; new scenario/scenario outline blocks only for append mode; omit block when mode is not generated}
+```
+
+## UI Feature
+
+**File:** `features/ui/{businessDomain}/{featureName}.feature`
+**Mode:** create / append / not generated
+**Feature tags:** `@playwright @{featureTag}`
+**Scenario count:** {N}
+
+```gherkin
+{complete UI feature content for create mode; new scenario/scenario outline blocks only for append mode; omit block when mode is not generated}
+```
+
+## Scenario Breakdown
+
+| # | Coverage Group | Source TPs | TC Tag | Layer | Scenario Description | Scenario Tags | Validation Target | Evidence Covered | AC Covered |
+|---|----------------|------------|--------|-------|---------------------|---------------|-------------------|------------------|------------|
+
+## AC Coverage Matrix
+
+| AC # | Summary | Covered by |
+|------|---------|------------|
+
+**Uncovered ACs:** None
+
+## Cucumber Run Commands
+
+```bash
+{single generated scenario command}
+{API feature command, only when API scenarios exist}
+{UI feature command, only when UI scenarios exist}
+```
+
+## Automation Handoff Contract
+
+| Step Pattern | Layer | Business Meaning | Reusable Scope | Implementation Need | Suggested Owner | Notes For Automation Agent |
+|--------------|-------|------------------|----------------|---------------------|-----------------|----------------------------|
+
+Do not decide whether a concrete Cucumber step definition already exists. Write `Automation Agent to resolve implementation reuse` when implementation ownership is unknown.
+````

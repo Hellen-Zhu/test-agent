@@ -147,7 +147,7 @@ Wait for user response:
 **Agent:** `bdd-case-design-agent`
 **Phase:** Phase 2 — BDD Feature Generation
 **Role:** Senior BDD + Case Design Specialist
-**Purpose:** Convert the approved Phase 1 report into business-readable API/UI feature content and reusable Step Pattern contracts. This phase owns Gherkin structure, feature file naming, TC IDs, Step Pattern Reuse Design, Automation Handoff, run-command guidance, and self-repair of BDD/case-design defects. It must not change Phase 1 validation intent or make automation implementation reuse decisions.
+**Purpose:** Convert the approved Phase 1 report into business-readable API/UI feature content and reusable Step Pattern contracts. This phase owns Gherkin structure, feature file naming, TC IDs, Automation Handoff Contract, run-command guidance, and self-repair of BDD/case-design defects. It must not change Phase 1 validation intent or make automation implementation reuse decisions.
 
 Do not load step catalogs, scan snippets/Java steps, scan feature files, or derive TC sequences in `/bdd-gen`.
 Existing `.feature` style/file-mode/TC-sequence context is owned by `bdd-case-design-agent`. Step definition/snippet/Java/helper implementation reuse is owned by `automation-agent`, not by `/bdd-gen` or `bdd-case-design-agent`.
@@ -169,7 +169,7 @@ pathHints:
 instruction: "Read and follow ~/.claude/agents/bdd-case-design-agent.md."
 ```
 
-Accept only the final markdown result defined by `bdd-case-design-agent` Output after its internal quality loop and self-check have completed. Do not accept candidate drafts or partially checked output.
+Accept only the final markdown result defined by the Output Contract in `~/.claude/docs/bdd-feature-generation-standards.md` after `bdd-case-design-agent` has completed its internal quality loop and self-check. Do not accept candidate drafts or partially checked output.
 
 Display the **complete** agent output to the user, followed by review guidance:
 
@@ -187,8 +187,8 @@ Display the **complete** agent output to the user, followed by review guidance:
 > - Does every Scenario have a complete Given/When/Then structure?
 > - Do tags and TC IDs follow naming conventions (`@TC-{FEATURE_MODULE}-API-{NNN}`, `@TC-{FEATURE_MODULE}-{SUBTYPE}-UI-{NNN}`)?
 > - Is the AC Coverage Matrix complete? Are there any uncovered ACs?
-> - Does Step Pattern Reuse Design define business meaning, reusable scope, design decision, and downstream automation owner?
-> - Does Automation Handoff avoid selecting concrete step definition functions or automation helper implementations?
+> - Does Automation Handoff Contract define business meaning, reusable scope, implementation need, and downstream owner?
+> - Does Automation Handoff Contract avoid selecting concrete step definition functions or automation helper implementations?
 >
 > **Action:**
 > - **approve** — Feature content is correct, write to files
@@ -202,14 +202,19 @@ Wait for user response:
 
 ---
 
-## Step 7: Write Feature Files
+## Step 7: Write Feature And Automation Handoff Files
 
-Extract the gherkin content from the confirmed Phase 2 output.
+Extract the gherkin content and Automation Handoff content from the confirmed Phase 2 output.
 
 Determine the target paths:
 - Use the API/UI file paths reported in the approved Phase 2 output.
 - Use the API/UI file modes reported in the approved Phase 2 output.
-- Do not re-derive feature names, domains, or target paths in the orchestrator.
+- Use the API/UI automation handoff file paths reported in the approved Phase 2 output:
+  - API: `{E2E_DIR}/src/test/resources/features/api/{businessDomain}/{featureName}.automation-handoff.md`
+  - UI: `{E2E_DIR}/src/test/resources/features/ui/{businessDomain}/{featureName}.automation-handoff.md`
+- Use the API/UI automation handoff modes reported in the approved Phase 2 output.
+- Handoff mode is independent from feature file mode: create when the handoff file does not exist, append when it exists, and skip when the layer is not generated.
+- Do not re-derive feature names, domains, feature paths, or handoff paths in the orchestrator.
 - If a layer has zero scenarios in the approved Phase 2 output, do not create a file for that layer.
 
 ### For each feature file with scenarios (API and/or UI):
@@ -226,6 +231,13 @@ Determine the target paths:
 
 3. **Write** using Write tool (new) or Edit tool (append)
 
+4. **Write layer-scoped automation handoff file:**
+   - Build handoff content from the approved Phase 2 output, filtered to the same layer.
+   - Include the same-layer feature file path, generated TC tags, and Automation Handoff Contract rows.
+   - **create** → Write a complete `{featureName}.automation-handoff.md` file. If the file already exists unexpectedly, stop and ask for review.
+   - **append** → Append a new handoff batch for the newly generated scenarios only. Do not overwrite existing handoff batches.
+   - **not generated** → Skip this layer.
+
 ---
 
 ## Step 8: Update Story State
@@ -241,6 +253,8 @@ Use **ado-agent** MCP tool to perform two operations:
    > **BDD Feature file generated.**
    >
    > **Files:** {target API feature file path and/or target UI feature file path}
+   >
+   > **Automation handoff files:** {target API handoff file path and/or target UI handoff file path}
    > **Feature tags:** `@api @{featureTag}` / `@playwright @{featureTag}`
    > **Total scenarios:** {N}
    >
@@ -267,6 +281,8 @@ Use the **Edit** tool to update the source JSON file with:
 - `lastCompletedStage`: `"writebddfeatures"`
 - `apiFeatureFile`: written API feature file path, if generated
 - `uiFeatureFile`: written UI feature file path, if generated
+- `apiAutomationHandoffFile`: written API automation handoff file path, if generated
+- `uiAutomationHandoffFile`: written UI automation handoff file path, if generated
 - `bddFeatureFile`: legacy field; set only when exactly one feature file was generated
 - `bddType`: `"api"` / `"ui"` / `"api+ui"` based on generated layers
 - `tcTags`: array of TC tag strings (e.g. `["@TC-TRADE-API-001", "@TC-TRADE-CREATE-UI-001"]`)
@@ -284,6 +300,9 @@ Report final completion:
 > **Files written:**
 > - {list only files that were created or appended, with scenario counts}
 >
+> **Automation handoff files written:**
+> - {list only handoff files that were created or appended}
+>
 > **State updated:**
 > - {ADO: "Comment posted + `bdd-ready` tag added to Work Item #{id}" / JSON: "Source file updated with `lastCompletedStage: writebddfeatures`"}
 >
@@ -294,5 +313,5 @@ Report final completion:
 >
 > **Next steps:**
 > - Review the generated feature files
-> - Invoke `automation-agent` with the approved feature files, Step Pattern Reuse Design, and Automation Handoff to implement or reuse step definitions/snippets/helpers
+> - Invoke `automation-agent` with the approved feature files and `.automation-handoff.md` files to implement or reuse step definitions/snippets/helpers
 > - Run `cucumber --dry-run` after automation implementation to verify step bindings

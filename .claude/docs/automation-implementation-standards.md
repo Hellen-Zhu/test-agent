@@ -13,9 +13,9 @@ The `.feature` file is the golden source. Do not change step text, TC IDs, tags,
 | Feature parsing | Extract TC tags, scenario summaries, layer tags, Feature/Scenario Annotation comments, Given/When/Then steps, Scenario Outline examples, and assertion intent from approved `.feature` files. |
 | Cucumber binding analysis | Map feature step text to exact or parameterized existing step definitions/snippets without changing feature wording. |
 | Regex and parameter design | Design stable capture groups for product, role, status, ID, date, currency, amount, and quantity without over-parameterizing. |
-| Snippet design | Create or reuse `.snippet` files for reusable business capabilities when the framework supports snippet-level composition. |
-| Java step definition design | Keep Java step definitions thin and delegate implementation mechanics to page objects, API clients, fixtures, data builders, or helpers. |
-| API automation | Implement business API steps using existing API clients, request builders, response contracts, assertions, fixtures, and cleanup conventions. |
+| Snippet design | Create or reuse `.snippet` files for reusable business capabilities when the framework supports snippet-level composition, especially API contract outcome steps that compose built-in glue. |
+| Java step definition design | Keep Java step definitions thin and delegate implementation mechanics to page objects, API clients, fixtures, data builders, or helpers. Use Java only when snippets/built-in glue cannot implement the approved step cleanly. |
+| API automation | Implement business API steps using built-in request/response glue, current-scenario contract assertions, existing API clients, fixtures, and cleanup conventions. |
 | UI automation | Implement UI business steps through page objects, stable selectors, explicit waits, workflow helpers, and screenshots/traces where supported. |
 | Test data design | Build deterministic, isolated, cleanup-safe data using Scenario Outline examples, fixtures, factories, seed APIs, or approved builders. |
 | Duplicate prevention | Search existing snippets, Cucumber bindings, helpers, clients, fixtures, and page objects before creating new artifacts. |
@@ -57,7 +57,8 @@ For each feature step, classify binding as one of:
 |----------|---------|
 | Exact existing match | Existing snippet or step definition matches the approved step text exactly. |
 | Parameterized existing match | Existing regex/string pattern matches the same business meaning and layer. |
-| New snippet | A reusable snippet should implement the approved business step. |
+| Built-in glue composition | Existing built-in glue can implement the approved business step through a snippet or framework binding. |
+| New business snippet | A reusable snippet should compose built-in glue behind the approved business step. |
 | New Java step definition | A Java binding is required because snippet/glue composition is insufficient. |
 | Existing helper/client/page object reuse | Binding is missing but lower-level implementation support already exists. |
 | `DESIGN_GAP` | The step is ambiguous, unimplementable, or requires changing business wording. |
@@ -65,8 +66,10 @@ For each feature step, classify binding as one of:
 Rules:
 - Reuse exact same-layer bindings before creating new ones.
 - Reuse parameterized same-layer bindings when the business meaning and outcome are the same.
+- For API contract outcome steps, prefer existing or new parameterized business snippets over new Java step definitions.
 - Do not reuse across API and UI layers.
 - Do not create duplicate regex patterns for the same business meaning.
+- Do not create one Java step definition per API entity when the only difference is the business object name, such as `reason created successfully` vs `trade created successfully`.
 - Do not create story-specific, TC-specific, endpoint-specific, selector-specific, or payload-file-specific step definitions.
 - Prefer business-domain parameters over technical parameters.
 
@@ -77,11 +80,12 @@ Read `~/.claude/docs/snippet-design-guide.md` when the project uses genie snippe
 Use snippets when:
 - a UI business action requires multiple low-level navigation, click, fill, wait, or assertion operations
 - an API precondition requires multiple setup calls to create reusable state
+- an API contract outcome business step can be implemented by composing built-in glue such as request execution, status-code assertion, current-scenario response contract matching, and response field storage
 - the behavior is reusable across scenarios and can be named as a business capability
 
 Do not use snippets when:
 - the step is already bound by an existing same-layer step definition
-- the API call is the endpoint under test and should remain directly asserted by the scenario implementation
+- the step requires custom business-field assertion logic that built-in glue cannot express
 - the snippet would hide unrelated behaviors behind a vague business phrase
 - more than three unrelated parameters are needed
 
@@ -108,10 +112,13 @@ Rules:
 ## 7. API Automation Rules
 
 - Implement API business steps without exposing HTTP paths, payload files, request builders, or matcher names in Gherkin.
-- Use existing API clients, request builders, auth helpers, response contract helpers, and cleanup conventions.
-- If the scenario tests an API response contract, prefer the framework's current-scenario contract assertion when available.
+- For contract-driven API scenarios, implement the approved business outcome step through existing built-in glue or a reusable business snippet that performs the expected status-code assertion and current-scenario response contract assertion.
+- Use existing API clients, request builders, auth helpers, response contract helpers, built-in glue, and cleanup conventions.
+- If the scenario tests an API response contract, prefer the framework's current-scenario contract assertion when available, and keep the feature wording at business-outcome level.
 - Use explicit assertions for business state, error reason, persistence, audit, event, or downstream effect only when required by the feature step.
 - Do not duplicate schema/status/body assertions if a single framework contract assertion already verifies them.
+- If the project convention separates status-code assertion from current-scenario contract matching, keep both checks inside the snippet/binding rather than repeating them in every Java step definition.
+- If feature wording claims list content, included item, business status, audit, event, or persistence, do not satisfy it with status/schema alone. Implement the business-field assertion or report `DESIGN_GAP`.
 - API setup should use seed APIs, factories, fixtures, or clients rather than UI workflows.
 - Keep generated records uniquely identifiable and cleanup-safe.
 
@@ -176,6 +183,7 @@ If verification cannot run, report:
 Avoid:
 - changing feature wording to match existing glue
 - duplicate step definitions with slightly different regex
+- one Java step definition per API business object when a parameterized outcome snippet/binding would cover the same contract outcome
 - broad catch-all regex such as `(.*)` for unrelated business meanings
 - story-specific snippets or step definitions
 - selector, endpoint, payload, Java class, fixture, or helper names in feature steps
@@ -192,6 +200,8 @@ Before returning:
 - Missing bindings are implemented or reported as `DESIGN_GAP`.
 - No approved feature wording, TC ID, tag, scenario summary, or grouping was changed.
 - New bindings do not duplicate existing same-layer business meanings.
+- API contract outcome steps reuse or create parameterized snippet/glue bindings instead of duplicate entity-specific Java implementations.
+- Any API business evidence step that claims data correctness has a real business assertion beyond status/schema, or is reported as `DESIGN_GAP`.
 - Test data is deterministic, isolated, and cleanup-safe.
 - API/UI implementation details remain outside feature files.
 - Feature annotations were parsed as trace/test-design context only and did not override approved step wording or force implementation artifact choices.

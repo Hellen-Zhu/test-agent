@@ -224,28 +224,61 @@ Scenario rules:
 API feature files describe business API behavior, not HTTP mechanics or automation glue.
 
 ```gherkin
+  # Scenario Annotation:
+  # tp: TP-001
+  # ac: AC-01
+  # validationTarget: FX TRF trade creation request is accepted
+  # observableEvidence: response matches the expected trade-create contract
+  # testDataIntent: valid maker and valid FX TRF trade details
   @TC-TRADE_CREATE-API-001 @positive @smoke
-  Scenario: [TC-TRADE_CREATE-API-001] Should accept a valid FX TRF trade submitted by maker
+  Scenario: [TC-TRADE_CREATE-API-001] Should create an FX TRF trade successfully
     Given maker has valid FX TRF trade details
     When maker submits the FX TRF trade for booking
-    Then the trade should be accepted for approval
+    Then the FX TRF trade should be created successfully
 ```
 
 Rules:
 - API steps must use business language: actor, business request, accepted/rejected outcome, persisted state, audit/event outcome, or downstream business effect.
+- Status code and current-scenario schema/body validation must not appear as Gherkin steps. They are implementation details for `automation-agent`.
 - Do not expose HTTP methods, paths, headers, payload files, request builders, response matcher names, Java classes, service clients, fixtures, or helper names.
 - Do not force wording to match existing automation glue.
 - A `Given` may describe business preconditions or data state.
 - A `When` describes the business request/action.
 - A `Then` describes the business outcome or observable evidence approved by Phase 1.
+- A `Then` must not claim stronger business evidence than the implementation is expected to verify. If approved evidence is only status code plus current-scenario contract, use contract outcome wording, not data-completeness wording.
 - Downstream Automation Agent decides whether the implementation uses genie-rest, YAML response contracts, Java assertions, API clients, fixtures, or helpers.
+
+Contract outcome step patterns:
+
+| API outcome | Preferred business step pattern | Intended implementation evidence |
+|-------------|---------------------------------|----------------------------------|
+| Create success | `Then the {business object} should be created successfully` | Expected status code and current-scenario response contract. |
+| Retrieve success | `Then the {business object} should be retrieved successfully` | Expected status code and current-scenario response contract. |
+| List retrieval success | `Then the {business object} list should be retrieved successfully` | Expected status code and current-scenario list response contract. |
+| Update success | `Then the {business object} should be updated successfully` | Expected status code and current-scenario response contract. |
+| Delete/cancel success | `Then the {business object} should be deleted successfully` or `Then the {business object} should be cancelled successfully` | Expected status code and current-scenario response contract. |
+| Rejection | `Then the {business object} request should be rejected` | Expected error status code and current-scenario error contract. |
+
+Business evidence step patterns:
+
+Use these only when approved Phase 1 validation target and observable evidence require more than status/schema contract validation:
+
+| Required evidence | Allowed business step pattern |
+|-------------------|-------------------------------|
+| Response contains an entity created earlier | `Then the created {business object} should be included in the response` |
+| Response contains a specific business state | `Then the {business object} should have status "{status}"` |
+| Rejection reason must be specific | `Then the rejection reason should identify {business reason}` |
+| Persistence/audit/event must be verified | `Then the {business object} should be recorded for {business purpose}` |
+
+Do not write data-completeness claims such as `Then all configured reasons should be returned` unless Phase 1 explicitly requires that content assertion and downstream automation will implement a business-field check.
 
 Assertion design table:
 
 | Approved validation target | Phase 2 business step strategy |
 |----------------------------|--------------------------------|
-| Status code, schema, response body, error code, error reason | Business outcome step, implemented later by API contract checks. |
-| Returned business state, calculated value, permission rejection shown in response | Business outcome step with the expected state/reason in domain language. |
+| Status code, schema, response body contract | Contract outcome step such as `the reason should be created successfully`; implemented later by status + current-scenario contract checks. |
+| Error code or generic error response contract | Rejection outcome step such as `the reason request should be rejected`; implemented later by error status + current-scenario error contract checks. |
+| Returned business state, calculated value, permission rejection reason shown in response | Business evidence step with the expected state/reason in domain language. |
 | Database persistence, audit record, emitted event, asynchronous state, downstream side effect | Business evidence step stating the persisted/audit/event/side-effect outcome. |
 | UI-visible evidence such as button, dialog, banner, or blotter status | UI scenario, not API assertion. |
 
@@ -303,6 +336,7 @@ These rules are mandatory for Phase 2 generation. Treat any violation as a defec
 - One scenario must prove one cohesive business behavior.
 - Scenario and Scenario Outline summaries must start with `[{TC-ID}] Should ...`.
 - The TC ID in the summary must match the TC ID tag on the same scenario.
+- API scenario summaries must not overclaim beyond approved API evidence. Contract-only scenarios should use outcome wording such as `Should create/retrieve/update/delete {business object} successfully`.
 - Every generated scenario must include a Scenario Annotation comment block with approved TP, AC, validation target, observable evidence, and business test data intent.
 - Scenario steps must preserve Given/When/Then completeness.
 - `Background:` may contain only stable shared setup, never the behavior under test, dynamic data preparation, or assertions.
@@ -314,6 +348,7 @@ These rules are mandatory for Phase 2 generation. Treat any violation as a defec
 - API and UI steps must use business language and stay free of implementation mechanics.
 - Feature and scenario annotations must use business and test-design language only.
 - The same business meaning must use one consistent step pattern.
+- API contract outcome steps should use parameterizable business-object/outcome wording instead of entity-specific wording that implies different implementation.
 - Feature wording must not be changed only to fit assumed existing automation glue.
 - Existing `.feature` files may influence terminology only when the wording remains clean business language.
 
@@ -331,6 +366,7 @@ Before returning:
 - Feature content in create mode includes a Feature Annotation comment block.
 - Every generated scenario includes a Scenario Annotation comment block.
 - Annotations contain only allowed trace and test-design fields and no implementation details.
+- API contract-only scenarios use contract outcome wording and do not claim data completeness, persistence, audit, event, or field-level business assertions unless approved Phase 1 evidence requires those checks.
 - Scenario language follows the methodology and Business Language Standards: domain language, consistent third-person voice, one behavior per scenario, and strategic tags.
 - API and UI scenarios keep implementation mechanics out of feature steps.
 - Coverage grouping is justified by approved Phase 1 test point fields and the grouping rules above.

@@ -93,8 +93,12 @@ API feature steps should be designed from the approved business outcome, not fro
 Ask:
 - What business request is being made?
 - What precondition or business data shape matters?
-- What accepted, rejected, persisted, audit, event, or downstream business outcome proves the approved evidence?
+- Is the approved API evidence only a contract outcome such as status code plus current-scenario JSON schema/body contract?
+- Or does the approved evidence require business data correctness such as included item, status value, audit record, persistence, event, or downstream side effect?
+- What accepted, rejected, persisted, audit, event, or downstream business outcome can be honestly proven by that evidence?
 - Can this be expressed as a stable business step pattern that is independent of the automation framework?
+
+For contract-only API coverage, use business outcome wording such as `{business object} should be created successfully` or `{business object} list should be retrieved successfully`. Do not claim data-specific behavior such as `all configured reasons should be returned` unless the approved Phase 1 evidence requires and supports a business-field assertion.
 
 Exact allowed and forbidden API wording is defined in `bdd-feature-generation-standards.md`.
 

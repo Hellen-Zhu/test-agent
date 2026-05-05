@@ -272,6 +272,7 @@ Display the **complete** agent output to the user, followed by review guidance:
 > - Do feature file names, top-level tags, and Feature descriptions follow the API/UI layer conventions?
 > - Are compatible test points grouped into the fewest readable scenarios without losing TP traceability?
 > - Does each generated scenario assert the approved validation target and observable evidence?
+> - For API contract-only scenarios, does wording stay at create/retrieve/update/delete/reject outcome level instead of claiming data correctness not actually asserted?
 > - Does create-mode feature content include a Feature Annotation comment block?
 > - Does every generated scenario include a Scenario Annotation comment block with TP, AC, validation target, observable evidence, and business test data intent?
 > - Are annotations free of step definitions, snippets, Java methods, page objects, API clients, fixtures, helpers, selectors, endpoints, payload files, and implementation commands?

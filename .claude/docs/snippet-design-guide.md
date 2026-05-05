@@ -185,15 +185,50 @@ Each line = one snippet call. The feature tells a business story. The snippets h
 
 ### 2.1 When API Snippets Are Needed
 
-API scenarios test endpoints directly using inline genie-rest glue. API snippets are used for **one purpose only: preconditions** — setting up data that another API scenario depends on.
+API feature files stay at business step-pattern level. API snippets may compose built-in genie-rest glue behind those business steps so feature files do not expose request construction, paths, status-code checks, or current-scenario schema matching.
+
+Most API scenarios in this framework are contract-driven: they prove that a business request returns the expected status code and matches the current scenario response contract. For those scenarios, prefer reusable business snippets or parameterized bindings over Java step definitions.
 
 | Situation | Use Snippet? | Why |
 |-----------|-------------|-----|
-| Testing the API endpoint itself (request + response) | No — inline glue | This IS the test, don't hide it |
+| Testing a contract outcome for the API endpoint under test | Yes — business outcome snippet or parameterized binding | Keeps feature wording business-readable while reusing built-in status + current-scenario contract glue |
 | Setting up data another scenario depends on (e.g. "a trade must exist before I can approve it") | Yes — precondition snippet | Reusable data setup, hides multi-step API calls |
-| Shared request headers/auth across scenarios | No — inline glue | Keep it visible; not complex enough to encapsulate |
+| Shared request headers/auth across scenarios | Usually no standalone business snippet | Keep it inside request/action snippets or common framework setup |
+| Business field assertion beyond status/schema | Maybe | Use a focused business assertion snippet/binding only when approved feature wording requires it |
 
-### 2.2 API Precondition Snippet Pattern
+### 2.2 API Contract Outcome Snippet Pattern
+
+Use a business outcome snippet when the feature step is a contract outcome such as creation, retrieval, update, deletion, cancellation, or rejection.
+
+```
+# api-contract-outcome.snippet
+@Then "the (.*) should be created successfully"
+  Then response status code is '200'
+  And response matches current scenario
+
+@Then "the (.*) should be retrieved successfully"
+  Then response status code is '200'
+  And response matches current scenario
+
+@Then "the (.*) list should be retrieved successfully"
+  Then response status code is '200'
+  And response matches current scenario
+
+@Then "the (.*) request should be rejected"
+  Then response status code is '400'
+  And response matches current scenario
+```
+
+Feature files call only the business step:
+
+```gherkin
+Then the trade lifecycle event reason should be created successfully
+Then the trade lifecycle event reason list should be retrieved successfully
+```
+
+Do not create one snippet or Java step per entity when the implementation is identical. Parameterize the business object and reuse the same outcome snippet.
+
+### 2.3 API Precondition Snippet Pattern
 
 Wrap a multi-step API call into a single precondition that puts the system into a known state:
 
@@ -212,15 +247,15 @@ This lets other scenarios start from a known state:
 ```gherkin
 # [REUSE] snippets/api/trade-precondition.snippet
 Given a FX TRF trade exists in Pending Approval status
-When put to path '/trades/{id}/approve'
-Then response matches current scenario
+When checker approves the pending trade via API
+Then the trade approval should be accepted successfully
 ```
 
-The scenario endpoint under test uses `response matches current scenario` as its contract assertion. That assertion validates the expected status code, JSON schema, and YAML-defined response body for the current scenario. Do not add a separate status-code assertion for the endpoint under test unless the framework contract assertion does not validate status.
+The scenario endpoint under test should still be represented by business request and business outcome steps in the feature file. The snippet or binding behind that outcome step may call `response status code is '200'` and `response matches current scenario` according to project convention.
 
-### 2.3 API Precondition Snippet Naming Convention
+### 2.4 API Snippet Naming Convention
 
-Pattern: `a/an {entity} exists in {state} status [for/with {qualifier}]`
+Precondition pattern: `a/an {entity} exists in {state} status [for/with {qualifier}]`
 
 The name describes the **resulting state**, not the steps to get there.
 
@@ -247,16 +282,35 @@ The name describes the **resulting state**, not the steps to get there.
 
 **Maximize reuse by parameterizing early.** A snippet named `a (.*) trade exists in (.*) status` covers all product/status combinations with a single snippet file, rather than creating `trade-exists-pending.snippet`, `trade-exists-live.snippet`, etc.
 
-### 2.4 Deciding: Inline Glue vs Precondition Snippet
+Contract outcome pattern: `the {business object} should be {outcome} successfully`, or `the {business object} request should be rejected` for rejection cases.
+
+Examples:
 
 ```
-Is this API call the thing I'm testing in this scenario?
-├── YES → Use inline genie-rest glue. No snippet.
-└── NO (this API call sets up data for the actual test)
-    ├── Is the setup ≥3 glue steps?
-    │   ├── YES → Precondition snippet (worth encapsulating)
-    │   └── NO (1-2 steps) → Inline glue (too simple to encapsulate)
-    └── (proceed)
+✓ the trade lifecycle event reason should be created successfully
+✓ the trade lifecycle event reason list should be retrieved successfully
+✓ the FX TRF trade should be updated successfully
+✓ the cancellation request should be rejected
+
+✗ response status code is '200'              → built-in glue, not feature wording
+✗ response matches current scenario          → built-in glue, not feature wording
+✗ all configured reasons should be returned  → requires real content assertion, not just contract validation
+```
+
+### 2.5 Deciding: Business Snippet vs Java Step
+
+```
+Is the approved API step a contract outcome?
+├── YES → Reuse or create a parameterized business outcome snippet using built-in glue.
+└── NO → continue
+
+Is the approved API step a precondition that creates reusable state?
+├── YES → Reuse or create a precondition snippet.
+└── NO → continue
+
+Does the step claim business data correctness beyond status/schema?
+├── YES → Implement a focused assertion binding/snippet, or report DESIGN_GAP if unsupported.
+└── NO → Use built-in glue composition through an existing binding/snippet.
 ```
 
 ---
@@ -308,6 +362,7 @@ src/test/resources/features/
 │   │   ├── login.snippet           # shared login snippets (UI)
 │   │   └── navigation.snippet      # shared page navigation (UI)
 │   ├── api/
+│   │   ├── api-contract-outcome.snippet # API contract outcome snippets (parameterized)
 │   │   └── trade-precondition.snippet   # API precondition snippets (parameterized)
 │   └── ui/
 │       ├── trade-create.snippet    # UI trade creation flows
@@ -315,7 +370,7 @@ src/test/resources/features/
 │       └── trade-verify.snippet    # UI blotter verification
 ```
 
-Note: API directory only contains **precondition** snippets. There are no API request-setup or API verify snippets.
+Note: API snippets are limited to business contract outcomes and reusable preconditions. Do not create endpoint-specific request-setup snippets or duplicate entity-specific verify snippets when a parameterized outcome snippet covers the same status/schema contract.
 
 ### 4.2 Snippet in Step Catalog
 
@@ -329,11 +384,14 @@ In `step-catalog.md`, custom snippets (Part B) should be documented with a `Laye
 | `maker is logged in to the trade portal` | UI | snippets/common/login.snippet |
 | `maker creates a new FX TRF trade` | UI | snippets/ui/trade-create.snippet |
 | `checker approves the pending trade` | UI | snippets/ui/trade-approve.snippet |
+| `the (.*) should be created successfully` | API-contract-outcome | snippets/api/api-contract-outcome.snippet |
+| `the (.*) list should be retrieved successfully` | API-contract-outcome | snippets/api/api-contract-outcome.snippet |
 | `a (.*) trade exists in (.*) status` | API-precondition | snippets/api/trade-precondition.snippet |
 ```
 
 The `Layer` column values:
 - `UI` — used only in UI feature files
+- `API-contract-outcome` — used for API business outcome steps implemented by status and current-scenario contract checks
 - `API-precondition` — used only as data setup in API feature files (not in UI files)
 
 This allows `automation-agent` to build layer-specific catalogs without scanning file contents.
@@ -357,9 +415,9 @@ For each step in the scenario:
    │   │   ├── YES → Implement or reuse a snippet behind the approved business step.
    │   │   │     Record the new/changed snippet in the Automation Implementation Report.
    │   │   └── NO (API scenario)
-   │   │       ├── Is this the endpoint under test? → Use inline genie-rest glue
-   │   │       ├── Is this precondition setup with ≥3 glue steps? → Implement or reuse a precondition snippet.
-   │   │       └── Is this simple precondition setup with 1-2 glue steps? → Use inline genie-rest glue
+   │   │       ├── Is this a contract outcome step? → Reuse or create a parameterized business outcome snippet.
+   │   │       ├── Is this precondition setup? → Implement or reuse a precondition snippet.
+   │   │       └── Is this a business evidence assertion? → Use focused assertion binding/snippet, or report DESIGN_GAP if unsupported.
    │   └── (proceed)
    └── NO (genie built-in can't do it)
        → Implement or reuse a Java step definition and record the binding decision.
@@ -369,4 +427,4 @@ For each step in the scenario:
 
 **UI feature files must NEVER contain raw genie-playwright glue steps.** Every UI step must stay as approved business Gherkin. `automation-agent` decides whether the implementation uses an existing snippet, a new snippet, a Java step definition, page objects, or helpers.
 
-**API feature files must stay at business step-pattern level in the BDD case design stage.** `automation-agent` may implement those steps with genie-rest glue, Java step definitions, API clients, fixtures, YAML contracts, or helpers according to framework conventions.
+**API feature files must stay at business step-pattern level.** For contract-driven API outcomes, `automation-agent` should prefer parameterized business snippets or bindings that compose genie-rest built-in glue such as status-code checks and `response matches current scenario`. Java step definitions are reserved for behavior that snippets/built-in glue cannot implement cleanly.

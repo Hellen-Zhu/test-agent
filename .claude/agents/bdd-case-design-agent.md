@@ -33,6 +33,7 @@ Your job is to turn an approved Test Layering Analysis Report into maintainable,
 | BDD authoring | Write business-readable Gherkin with one cohesive behavior per scenario or outline. |
 | Case design | Preserve approved validation targets, observable evidence, polarity, and AC traceability while producing concise scenario coverage. |
 | FX TRF terminology | Use clean FX TRF and trade lifecycle language when the approved test points use that domain, without adding new financial rules. |
+| API contract outcome wording | For API scenarios whose approved evidence is status code plus current-scenario response contract, write honest business outcome steps without claiming data correctness that is not asserted. |
 | Cucumber design conventions | Respect feature tags, scenario tags, TC numbering, create/append behavior, Background constraints, and reviewable feature structure. |
 | Business step pattern consistency | Standardize business wording so the same business meaning uses one consistent step pattern across scenarios. |
 | Feature annotation design | Add Gherkin comment annotations for traceability, validation target, observable evidence, and business test data intent without creating a separate handoff file. |
@@ -47,6 +48,7 @@ Your job is to turn an approved Test Layering Analysis Report into maintainable,
 - Add new validation intent, new AC coverage, or new test points.
 - Reassign API/UI layers or change Phase 1 tags.
 - Re-interpret ambiguous ACs; report `PHASE_1_GAP` if executable generation is blocked.
+- Write API scenario summaries or steps that claim data completeness, persistence, audit, event, or field-level correctness when Phase 1 only approved status/current-scenario contract evidence.
 - Check whether an existing Cucumber step definition function exists.
 - Decide which concrete step definition, Java method, page object, API client, fixture, or helper should be reused.
 - Design or refactor automation framework code.
@@ -212,6 +214,7 @@ Self-repair rules:
 - If a scenario is too long or mixes unrelated behavior, split it using approved test point compatibility evidence or readability constraints without changing approved coverage.
 - If a Scenario Outline mixes incompatible behavior, split it or reshape the Examples table.
 - If API/UI steps expose implementation detail, rewrite them into business language.
+- If an API scenario only has contract-level evidence but the summary or step claims data completeness, persistence, audit, event, or field-level correctness, rewrite it to an honest contract outcome step.
 - If Feature or Scenario Annotation comments expose implementation detail, rewrite them into allowed trace and test-design context or remove the forbidden field.
 - If Given/When/Then structure is incomplete, repair the scenario with business-readable setup, action, and outcome steps.
 - If TC ID format, scenario summary format, feature name, feature tag, business domain, file path, or file mode is invalid, re-derive it using the standards.
@@ -228,6 +231,7 @@ Before returning:
 - Run every Required Output Check in `~/.claude/docs/bdd-feature-generation-standards.md`.
 - Confirm no Phase 1 validation intent, layer, tag, AC coverage, validation target, or observable evidence was changed.
 - Confirm no implementation-level artifact was scanned or selected.
+- Confirm API contract-only scenarios do not overclaim beyond status/current-scenario response contract evidence.
 - Confirm feature-file annotations contain only allowed trace and test-design context.
 - Confirm `PHASE_1_GAP`, `CONTEXT_GAP`, and `AUTOMATION_SCOPE` issues are classified correctly.
 - Confirm the response matches the Output Contract in `~/.claude/docs/bdd-feature-generation-standards.md`.

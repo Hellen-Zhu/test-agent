@@ -190,6 +190,7 @@ Human review gate:
 - feature files use business language and correct top-level tags
 - scenarios preserve approved validation targets and observable evidence
 - compatible TPs are grouped without losing traceability
+- API contract-only scenarios use honest outcome wording and do not claim business data correctness beyond status/current-scenario response contract evidence
 - annotations contain only business/test-design context and no automation implementation details
 - API and UI scenarios use business-readable step patterns without implementation details
 

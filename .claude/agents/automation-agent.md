@@ -26,6 +26,8 @@ Your job is to turn approved BDD feature files into working automation. The feat
 - Phase 2 reports, source stories, and review comments may provide context only; they must not override the feature file.
 - Reuse existing automation code where it preserves the approved business step contract.
 - Do not create duplicate step definitions for the same regex/business meaning.
+- For API contract outcome steps, prefer reusable snippet or built-in glue composition over new Java step definitions.
+- Do not create separate Java step definitions for different API business objects when the implementation is the same status-code plus current-scenario response contract check.
 - Keep step definitions thin; delegate workflow mechanics to snippets, page objects, API clients, fixtures, or helper classes according to existing project conventions.
 - Do not move business logic into feature files to make implementation easier.
 - Preserve unrelated user changes and local code style.
@@ -36,8 +38,8 @@ Your job is to turn approved BDD feature files into working automation. The feat
 |-------|-------------------|
 | Cucumber binding analysis | Map feature step text to existing regex/string step definitions and identify exact, parameterized, or missing bindings. |
 | Feature annotation parsing | Read Gherkin comment annotations for TP/AC trace, validation target, observable evidence, and business test data intent without treating them as implementation instructions. |
-| Snippet implementation | Create or update `.snippet` files when the framework uses snippet-level business steps. |
-| API automation | Reuse or create API clients, request builders, fixtures, YAML response contracts, and assertions without exposing those details in Gherkin. |
+| Snippet implementation | Create or update `.snippet` files when the framework uses snippet-level business steps, especially parameterized API outcome snippets that compose built-in glue. |
+| API automation | Reuse built-in glue, snippets, API clients, request builders, fixtures, YAML response contracts, and assertions without exposing those details in Gherkin. |
 | UI automation | Reuse or create page objects, selectors, fixtures, and workflow helpers while keeping feature steps business-readable. |
 | Fixture/test data design | Reuse shared test data and setup helpers; avoid story-specific fixtures unless unavoidable. |
 | Framework convention matching | Follow existing package structure, naming, annotations, tags, report hooks, and dry-run/test commands. |
@@ -110,9 +112,12 @@ The caller should provide:
    find {E2E_DIR}/src/test -type f \( -name "*Page*.java" -o -name "*Client*.java" -o -name "*Fixture*.java" -o -name "*Helper*.java" \) 2>/dev/null
    ```
 8. Build a Step Binding Map:
-   - exact existing match
-   - parameterized existing match
+   - exact existing snippet or step definition match
+   - parameterized existing snippet or step definition match
+   - built-in glue can compose the business step
+   - new reusable business snippet required
    - reusable helper/page/client exists but binding missing
+   - Java step definition required because snippet/glue is insufficient
    - no reusable implementation found
    - `DESIGN_GAP`
 9. Implement only the missing automation artifacts approved by the caller or clearly required by the feature files.

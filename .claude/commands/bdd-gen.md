@@ -272,6 +272,9 @@ Display the **complete** agent output to the user, followed by review guidance:
 > - Do feature file names, top-level tags, and Feature descriptions follow the API/UI layer conventions?
 > - Are compatible test points grouped into the fewest readable scenarios without losing TP traceability?
 > - Does each generated scenario assert the approved validation target and observable evidence?
+> - Does create-mode feature content include a Feature Annotation comment block?
+> - Does every generated scenario include a Scenario Annotation comment block with TP, AC, validation target, observable evidence, and business test data intent?
+> - Are annotations free of step definitions, snippets, Java methods, page objects, API clients, fixtures, helpers, selectors, endpoints, payload files, and implementation commands?
 > - Does the same business meaning use one consistent step pattern across scenarios?
 > - Do API/UI scenarios stay in business language without request builders, endpoints, selectors, clicks, fills, page objects, API clients, fixtures, or helper names?
 > - Does every Scenario have a complete Given/When/Then structure?
@@ -309,7 +312,7 @@ Determine the target paths:
 
 2. **Apply the approved file mode:**
    - **create** → Write the complete feature content as a new file. If the file already exists unexpectedly, stop and ask for review.
-   - **append** → Read the existing file and append ONLY the approved new Scenario/Scenario Outline blocks. Do not append top-level tags, `Feature:`, descriptions, or `Background:`.
+   - **append** → Read the existing file and append ONLY the approved new Scenario Annotation + Scenario/Scenario Outline blocks. Do not append top-level tags, `Feature:`, descriptions, Feature Annotation, or `Background:`.
    - **not generated** → Skip this layer.
 
 3. **Write** using Write tool (new) or Edit tool (append)

@@ -17,6 +17,7 @@ Detailed output and contract standards for `bdd-case-design-agent`. This documen
 | API response contract | YAML contract bound to the current scenario | Existing response contract patterns | Duplicating status/schema/body assertions in feature steps |
 | UI wording | TP names + persona + `solutionDesign.uiDesign` | Description | Endpoint names |
 | Extra API assertions and test data | Phase 1 validation target + approved `solutionDesign.testDesignImplications` | Technical notes only as weak fallback | Inventing DB/audit/event assertions without design evidence |
+| Feature annotations | Approved Phase 1 report + generated Phase 2 context | Source payload story identity for source trace only | Separate automation context files or automation-code decisions |
 
 If Phase 1 has no approved test point for a behavior, do not generate a scenario for it.
 
@@ -31,11 +32,13 @@ Required:
 - One consistent third-person voice such as `maker`, `checker`, `admin`, or `the user`.
 - Business contract-level steps that can be reviewed without reading Java, Playwright selectors, request builders, or helper code.
 - Cucumber tags only for execution selection and the generated TC ID.
+- Feature and scenario annotations as Gherkin comments for traceability and test-design context.
 
 Forbidden:
 - Java class names, Cucumber function names, snippets, CSS selectors, DOM IDs, endpoint paths, payload files, request builders, response matcher names, page objects, API clients, fixtures, helpers, or framework wording.
 - Tags for story IDs, AC IDs, modules, domains, or arbitrary metadata.
 - Feature wording changed only to fit assumed existing automation glue.
+- Annotations that mention Java methods, snippets, selectors, endpoints, page objects, API clients, fixtures, helpers, payload files, request builders, response matchers, or database table names.
 
 ## 3. Naming Rules
 
@@ -87,6 +90,7 @@ Rules:
 - Same feature name may exist under both `api/` and `ui/`.
 - Ignore any legacy `bddFeatureFile`, `apiFeatureFile`, or `uiFeatureFile` fields in source JSON.
 - Generated feature files are the golden source for `automation-agent`; do not produce separate automation context files.
+- Feature and scenario annotations are embedded as Gherkin comments inside the generated `.feature` file. Do not create `.automation-handoff.md`, `.handoff.md`, or any separate automation context artifact.
 
 Existing files:
 - Read target file when present.
@@ -106,6 +110,12 @@ Feature: {Business Object} {Capability} {Layer Label}
   Story: {storyId} - {title}
   Goal: {one sentence business goal}
   Scope: {layer scope}
+
+  # Feature Annotation:
+  # businessDomain: {businessDomain}
+  # validationScope: {business validation scope}
+  # source: {storyId}
+  # implementationBoundary: Feature file is the golden source; preserve business wording during implementation.
 ```
 
 API:
@@ -120,7 +130,50 @@ UI:
 - Scope mentions user workflow, visible status, cross-role handoff, or lifecycle.
 - `Background:` is optional and only for stable reusable setup such as login.
 
-## 6. Coverage Grouping
+## 6. Feature Annotation Standards
+
+Feature annotations are Gherkin comments that keep trace and test-design context next to the executable specification. They replace separate automation context markdown files.
+
+They are not automation instructions.
+
+Feature-level annotation:
+- Required in `create` mode.
+- Not added in `append` mode because append mode must not rewrite top-level feature content.
+- Must appear after `Story`, `Goal`, and `Scope`, before `Background:` or scenarios.
+- Allowed keys: `businessDomain`, `validationScope`, `source`, `implementationBoundary`.
+- `implementationBoundary` must be a generic boundary reminder only; it must not name implementation artifacts.
+
+Scenario-level annotation:
+- Required before every generated `Scenario` and `Scenario Outline` in both `create` and `append` mode.
+- Must appear immediately before the scenario tags so the tags remain directly attached to the scenario.
+- Allowed keys: `tp`, `ac`, `validationTarget`, `observableEvidence`, `testDataIntent`.
+- `tp` must list the approved Phase 1 test point IDs covered by the scenario.
+- `ac` must list the approved AC IDs covered by the scenario.
+- `validationTarget` and `observableEvidence` must come from approved Phase 1 fields.
+- `testDataIntent` must describe business data intent only, not fixtures, builders, payload files, database rows, or helper names.
+
+Format:
+
+```gherkin
+  # Scenario Annotation:
+  # tp: TP-001, TP-002
+  # ac: AC-01, AC-02
+  # validationTarget: trade booking is persisted with the expected business status
+  # observableEvidence: booking response contains trade id and booked status
+  # testDataIntent: valid active customer, supported currency pair, and valid FX TRF product terms
+  @TC-TRADE_CREATE-API-001 @positive @smoke
+  Scenario: [TC-TRADE_CREATE-API-001] Should accept a valid FX TRF trade submitted by maker
+```
+
+Forbidden in annotations:
+- step definition names
+- snippet names
+- Java class or method names
+- page object, API client, fixture, helper, request builder, or response matcher names
+- selectors, endpoints, payload files, database tables, environment IDs, or implementation commands
+- instructions to reuse or create a specific automation artifact
+
+## 7. Coverage Grouping
 
 `bdd-case-design-methodology.md` defines how to decide grouping. This section defines the exact output constraints.
 
@@ -134,7 +187,7 @@ Coverage Group standards:
 - Do not group positive and negative behavior in the same scenario or Scenario Outline.
 - The `Grouping Basis` must explain why the selected test points are compatible using approved Phase 1 fields.
 
-## 7. Scenario Level
+## 8. Scenario Level
 
 TC IDs:
 - API: `TC-{FEATURE_MODULE}-API-{NNN}`
@@ -161,8 +214,10 @@ Scenario rules:
 - Negative names must identify rejected condition.
 - Use `Scenario Outline` for one behavior repeated over multiple examples.
 - Do not combine positive and negative behaviors in the same scenario or Scenario Outline.
+- Every scenario or Scenario Outline must include a Scenario Annotation comment block immediately before its tags.
+- In `append` mode, append each Scenario Annotation together with its scenario block.
 
-## 8. API Step Pattern Standards
+## 9. API Step Pattern Standards
 
 `bdd-case-design-methodology.md` defines how to design API business steps. This section defines allowed and forbidden API step wording.
 
@@ -194,7 +249,7 @@ Assertion design table:
 | Database persistence, audit record, emitted event, asynchronous state, downstream side effect | Business evidence step stating the persisted/audit/event/side-effect outcome. |
 | UI-visible evidence such as button, dialog, banner, or blotter status | UI scenario, not API assertion. |
 
-## 9. UI Step Pattern Standards
+## 10. UI Step Pattern Standards
 
 `bdd-case-design-methodology.md` defines how to design UI business steps. This section defines allowed and forbidden UI step wording.
 
@@ -217,7 +272,7 @@ Rules:
 - Multi-actor flow is allowed for handoff/lifecycle TPs.
 - Use `Given` for setup/state, `When` for action, `Then` for assertions.
 
-## 10. Design Integrity Rules
+## 11. Design Integrity Rules
 
 These rules are mandatory for Phase 2 generation. Treat any violation as a defect to classify and repair before returning the final output.
 
@@ -248,6 +303,7 @@ These rules are mandatory for Phase 2 generation. Treat any violation as a defec
 - One scenario must prove one cohesive business behavior.
 - Scenario and Scenario Outline summaries must start with `[{TC-ID}] Should ...`.
 - The TC ID in the summary must match the TC ID tag on the same scenario.
+- Every generated scenario must include a Scenario Annotation comment block with approved TP, AC, validation target, observable evidence, and business test data intent.
 - Scenario steps must preserve Given/When/Then completeness.
 - `Background:` may contain only stable shared setup, never the behavior under test, dynamic data preparation, or assertions.
 - Scenario summaries must be specific and active; negative scenario summaries must identify the rejected condition.
@@ -256,6 +312,7 @@ These rules are mandatory for Phase 2 generation. Treat any violation as a defec
 ### Business Language Rules
 
 - API and UI steps must use business language and stay free of implementation mechanics.
+- Feature and scenario annotations must use business and test-design language only.
 - The same business meaning must use one consistent step pattern.
 - Feature wording must not be changed only to fit assumed existing automation glue.
 - Existing `.feature` files may influence terminology only when the wording remains clean business language.
@@ -264,13 +321,16 @@ These rules are mandatory for Phase 2 generation. Treat any violation as a defec
 
 - Missing path, existing feature evidence, TC sequence evidence, or other safe-generation context must be classified as `CONTEXT_GAP`.
 
-## 11. Required Output Checks
+## 12. Required Output Checks
 
 Before returning:
 - Every approved TP is represented once in Coverage Grouping Plan, Scenario Blueprint, and Breakdown.
 - No scenario exists without an approved TP.
 - Scenario count is minimized through valid grouping without losing traceability.
 - Scenario and Scenario Outline summaries include the matching TC ID in `[TC-...] Should ...` format.
+- Feature content in create mode includes a Feature Annotation comment block.
+- Every generated scenario includes a Scenario Annotation comment block.
+- Annotations contain only allowed trace and test-design fields and no implementation details.
 - Scenario language follows the methodology and Business Language Standards: domain language, consistent third-person voice, one behavior per scenario, and strategic tags.
 - API and UI scenarios keep implementation mechanics out of feature steps.
 - Coverage grouping is justified by approved Phase 1 test point fields and the grouping rules above.
@@ -281,7 +341,7 @@ Before returning:
 - Existing files are append-only.
 - AC Coverage Matrix covers every AC referenced by Phase 1.
 
-## 12. Output Contract
+## 13. Output Contract
 
 This section is the single detailed output contract for `bdd-case-design-agent`. Other workflow files should reference this section instead of duplicating the template.
 
@@ -339,7 +399,7 @@ If no context gaps exist, write: `None`.
 **Scenario count:** {N}
 
 ```gherkin
-{complete API feature content for create mode; new scenario/scenario outline blocks only for append mode; omit block when mode is not generated}
+{complete API feature content with annotations for create mode; new scenario annotation + scenario/scenario outline blocks only for append mode; omit block when mode is not generated}
 ```
 
 ## UI Feature
@@ -350,7 +410,7 @@ If no context gaps exist, write: `None`.
 **Scenario count:** {N}
 
 ```gherkin
-{complete UI feature content for create mode; new scenario/scenario outline blocks only for append mode; omit block when mode is not generated}
+{complete UI feature content with annotations for create mode; new scenario annotation + scenario/scenario outline blocks only for append mode; omit block when mode is not generated}
 ```
 
 ## Scenario Breakdown

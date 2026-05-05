@@ -26,6 +26,7 @@ Approved test points
   -> Coverage group
   -> Scenario strategy
   -> Business step pattern consistency
+  -> Feature and scenario annotation design
   -> Automation-ready feature content
   -> check against standards for leakage, duplication, and trace loss
 ```
@@ -122,13 +123,26 @@ Consistency design order:
 
 Do not check whether a concrete Cucumber step definition already exists. Do not select Java methods, snippets, page objects, API clients, fixtures, or helpers.
 
-## 8. Standards Relationship
+## 8. Design Feature Annotations
+
+Feature and Scenario Annotation comments keep traceability and test-design intent inside the `.feature` file so downstream automation does not need a separate context document.
+
+Use annotations to preserve:
+- source story trace
+- approved TP and AC mapping
+- approved validation target
+- approved observable evidence
+- business test data intent
+
+Do not use annotations to design automation implementation. Annotation content must not name step definitions, snippets, Java methods, page objects, API clients, fixtures, helpers, selectors, endpoints, payloads, or database tables.
+
+## 9. Standards Relationship
 
 This methodology intentionally does not define Phase 2 pass/fail rules. Design Integrity Rules, Required Output Checks, and the output contract live in `bdd-feature-generation-standards.md`.
 
 After applying the design loop, validate and repair the candidate result against those standards.
 
-## 9. Output Relationship
+## 10. Output Relationship
 
 Output structure and exact field rules are defined in `bdd-feature-generation-standards.md`.
 

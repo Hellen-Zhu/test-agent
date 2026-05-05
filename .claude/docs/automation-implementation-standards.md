@@ -2,7 +2,7 @@
 
 Detailed implementation standards for `automation-agent`. This document defines how to turn approved `.feature` files into reusable Cucumber bindings, snippets, Java step definitions, framework helpers, and deterministic test data.
 
-The `.feature` file is the golden source. Do not change step text, TC IDs, tags, scenario summaries, scenario grouping, or business behavior to fit existing automation code.
+The `.feature` file is the golden source. Do not change step text, TC IDs, tags, scenario summaries, scenario grouping, embedded annotations, or business behavior to fit existing automation code.
 
 ## 1. Required Skills
 
@@ -10,7 +10,7 @@ The `.feature` file is the golden source. Do not change step text, TC IDs, tags,
 
 | Skill | Expected behavior |
 |-------|-------------------|
-| Feature parsing | Extract TC tags, scenario summaries, layer tags, Given/When/Then steps, Scenario Outline examples, and assertion intent from approved `.feature` files. |
+| Feature parsing | Extract TC tags, scenario summaries, layer tags, Feature/Scenario Annotation comments, Given/When/Then steps, Scenario Outline examples, and assertion intent from approved `.feature` files. |
 | Cucumber binding analysis | Map feature step text to exact or parameterized existing step definitions/snippets without changing feature wording. |
 | Regex and parameter design | Design stable capture groups for product, role, status, ID, date, currency, amount, and quantity without over-parameterizing. |
 | Snippet design | Create or reuse `.snippet` files for reusable business capabilities when the framework supports snippet-level composition. |
@@ -24,10 +24,13 @@ The `.feature` file is the golden source. Do not change step text, TC IDs, tags,
 ## 2. Source Rules
 
 - The approved `.feature` file is the golden source for step text, TC IDs, tags, scenario grouping, and business behavior.
+- Feature and Scenario Annotation comments inside the approved `.feature` file are trace and test-design context. They may clarify TP/AC trace, validation target, observable evidence, and business test data intent.
+- Annotations are not implementation instructions. They must not force reuse of a specific step definition, snippet, Java method, page object, API client, fixture, helper, selector, endpoint, payload file, request builder, or matcher.
 - Phase 2 reports, source stories, solution design, and review comments are trace context only. They must not override the feature file.
 - If a feature step cannot be implemented without changing the business language, report `DESIGN_GAP` instead of changing the feature file.
 - Do not add implementation-only steps to feature files.
 - Do not remove or merge approved scenarios, tags, or steps during automation implementation.
+- If an annotation contains implementation details, ignore the implementation-specific part and report a design follow-up. Do not implement from forbidden annotation details.
 
 ## 3. Step Inventory Rules
 
@@ -38,6 +41,8 @@ For every approved feature file, build a step inventory before implementing:
 | Feature path | Scope implementation and verification commands. |
 | Layer tag | Select API or UI implementation strategy. |
 | TC tag | Drive dry-run, targeted execution, and reporting. |
+| Feature Annotation | Understand business domain, validation scope, and source trace. |
+| Scenario Annotation | Understand TP/AC mapping, validation target, observable evidence, and business test data intent. |
 | Scenario summary | Understand business behavior and expected outcome. |
 | Given steps | Identify preconditions, fixtures, setup snippets, or existing state requirements. |
 | When steps | Identify action under test. |
@@ -127,9 +132,10 @@ Use the smallest deterministic data design that proves the approved feature beha
 Data source priority:
 1. Scenario Outline `Examples` values.
 2. Explicit values in feature step parameters.
-3. Existing fixtures, factories, seed APIs, or test data builders.
-4. Approved solution-design context when the feature file needs implementation context.
-5. Technical notes only as weak fallback when approved design evidence is missing.
+3. Scenario Annotation `testDataIntent` when present.
+4. Existing fixtures, factories, seed APIs, or test data builders.
+5. Approved solution-design context when the feature file needs implementation context.
+6. Technical notes only as weak fallback when approved design evidence is missing.
 
 Rules:
 - Keep test data isolated per scenario.
@@ -188,4 +194,5 @@ Before returning:
 - New bindings do not duplicate existing same-layer business meanings.
 - Test data is deterministic, isolated, and cleanup-safe.
 - API/UI implementation details remain outside feature files.
+- Feature annotations were parsed as trace/test-design context only and did not override approved step wording or force implementation artifact choices.
 - Verification was run or the blocker is reported with exact commands.

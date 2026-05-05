@@ -179,6 +179,7 @@ Phase 2 derives:
 - API/UI target file paths
 - file mode: `create`, `append`, or `not generated`
 - scenario grouping and Scenario Outline usage, derived from approved Phase 1 test point fields
+- Feature and Scenario Annotation comments embedded in the generated `.feature` files for traceability, validation target, observable evidence, and business test data intent
 
 Feature identity:
 - `featureName`: snake_case business capability, normally `{primary_business_object}_{primary_business_action}`
@@ -189,6 +190,7 @@ Human review gate:
 - feature files use business language and correct top-level tags
 - scenarios preserve approved validation targets and observable evidence
 - compatible TPs are grouped without losing traceability
+- annotations contain only business/test-design context and no automation implementation details
 - API and UI scenarios use business-readable step patterns without implementation details
 
 If the reviewer requests changes, `/bdd-gen` re-invokes `bdd-case-design-agent` with a Phase 2 `reinvokeContext` containing the previous final checked Phase 2 output, exact user revision request, and any still-valid discovery snapshot such as resolved `{E2E_DIR}`, feature-file style evidence, file-mode evidence, and TC sequence evidence. Required methodology and standards references may be reused only when their paths and hashes are unchanged; otherwise the agent must read them again.
@@ -202,8 +204,9 @@ After Phase 2 approval, `/bdd-gen` writes only approved feature content:
 
 Write rules:
 - `create` mode writes full feature content
-- `append` mode writes scenario/scenario-outline blocks only
+- `append` mode writes Scenario Annotation + scenario/scenario-outline blocks only
 - existing top-level tags, `Feature:`, descriptions, and `Background:` are not duplicated
+- Feature Annotation is written only in `create` mode; Scenario Annotation is written with every generated scenario
 - generated output is not expanded beyond the approved Phase 2 result
 
 Source update:
@@ -211,7 +214,7 @@ Source update:
 - ADO receives a BDD generation comment and may receive the updated Story Contract JSON
 
 Automation implementation:
-- `automation-agent` consumes the written `.feature` files as the golden source for step text, TC IDs, tags, scenario grouping, and business behavior.
+- `automation-agent` consumes the written `.feature` files as the golden source for step text, TC IDs, tags, scenario grouping, business behavior, and embedded annotations.
 - No separate automation context file is generated or required.
 
 ## Practical Control Points

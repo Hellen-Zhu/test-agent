@@ -34,6 +34,7 @@ bddPipelineInput:
     targetAgent: qa-test-analysis-agent
     input:
       sourcePayload: <bddPipelineInput.common.sourcePayload>
+      reinvokeContext: <optional Phase 1 reinvoke context; only for revision runs>
     instruction: "Read and follow ~/.claude/agents/qa-test-analysis-agent.md."
 
   phase2:
@@ -43,6 +44,7 @@ bddPipelineInput:
       sourcePayload: <bddPipelineInput.common.sourcePayload>
       confirmedPhase1Report: <full human-approved Phase 1 markdown report>
       pathHints: <bddPipelineInput.common.pathHints, plus any retry hint>
+      reinvokeContext: <optional Phase 2 reinvoke context; only for revision runs>
     instruction: "Read and follow ~/.claude/agents/bdd-case-design-agent.md."
 ```
 
@@ -55,6 +57,7 @@ Field rules:
 | `phase2.input.sourcePayload` | Phase 2 | Naming, wording, and approved design context only. It must not add validation intent beyond Phase 1. |
 | `phase2.input.confirmedPhase1Report` | Phase 2 | The human-approved Phase 1 output and the source of truth for validation intent, layer, tags, AC mapping, validation target, and observable evidence. |
 | `phase2.input.pathHints` | Phase 2 | Hints only. `/bdd-gen` collects them; `bdd-case-design-agent` resolves `{E2E_DIR}`. |
+| `reinvokeContext` | Revision runs only | Previous final checked output, user delta, immutable input hashes, reference snapshots, and phase-appropriate reusable discovery context. |
 | `instruction` | Both phases | Points the invoked agent to its agent definition. |
 
 Contract rules:
@@ -64,6 +67,43 @@ Contract rules:
 - Do not mutate, normalize, split, or repair `sourcePayload` in `/bdd-gen`.
 - Do not put derived feature names, feature tags, file paths, TC IDs, or scenario grouping decisions into the input contract.
 - Do not pass automation implementation context such as step catalogs, snippets, Java glue, page objects, API clients, fixtures, or helpers.
+
+### Reinvoke Context
+
+When the user chooses `revise`, do not manually patch the agent output in `/bdd-gen`. Re-invoke the same phase agent with a `reinvokeContext`.
+
+Use this shape:
+
+```yaml
+reinvokeContext:
+  mode: revision
+  reason: user_revision | missing_context_retry
+  userRevisionRequest: <exact user requested change>
+  previousOutput: <previous final checked markdown output from the same phase>
+  previousOutputHash: <hash if available>
+  immutableInputHashes:
+    sourcePayloadHash: <hash if available>
+    confirmedPhase1ReportHash: <Phase 2 only; hash if available>
+  referenceSnapshot:
+    - path: ~/.claude/docs/{required-doc}.md
+      hash: <hash if available>
+      status: verified
+      appliedChecks: <short list of checks already applied in the previous final output>
+  reusableDiscoverySnapshot:
+    e2eDir: <Phase 2 only; resolved path if previously resolved>
+    featureFilesScanned: <Phase 2 only; feature files used for style/file-mode evidence>
+    tcSequenceEvidence: <Phase 2 only; TC IDs observed during previous scan>
+    generationContext: <Phase 2 only; previous Generation Context section>
+```
+
+Reinvoke rules:
+- `previousOutput` is a candidate for delta repair, not a source of truth.
+- `sourcePayload`, and the approved Phase 1 report where applicable, remain the source of truth.
+- Required methodology and standards references may skip full reread only when the reference path and hash are unchanged and the previous run recorded the applied checks. If the snapshot is missing, unreadable, or changed, the agent must read the required docs again.
+- Phase 1 must not reuse Phase 2 discovery context.
+- Phase 2 may reuse project discovery context such as `{E2E_DIR}`, feature file style evidence, file mode evidence, and TC sequence evidence when the immutable inputs and discovery scope are unchanged.
+- If the user revision changes scope, layer, naming basis, path hints, or any input hash, invalidate the affected snapshot and let the agent re-resolve that context.
+- Every reinvoke must rerun the phase agent's internal quality loop and required output checks before returning.
 
 ---
 
@@ -192,7 +232,7 @@ Display the **complete** agent output to the user, followed by review guidance:
 
 Wait for user response:
 - **approve** → proceed to Step 6 with the confirmed layering plan
-- **revise** → apply user's modifications to the layering report, re-display this Step 5 review prompt, wait for confirmation
+- **revise** → build `bddPipelineInput.phase1.input.reinvokeContext` with the previous final Phase 1 output and the exact user revision request, re-invoke `qa-test-analysis-agent`, re-display this Step 5 review prompt, wait for confirmation
 - **stop** → end pipeline: "Pipeline terminated."
 
 ---
@@ -245,7 +285,7 @@ Display the **complete** agent output to the user, followed by review guidance:
 
 Wait for user response:
 - **approve** → proceed to Step 7
-- **revise** → apply user's modifications to the feature content, re-display this Step 6 review prompt, wait for confirmation
+- **revise** → build `bddPipelineInput.phase2.input.reinvokeContext` with the previous final Phase 2 output, reusable Phase 2 discovery snapshot, and the exact user revision request, re-invoke `bdd-case-design-agent`, re-display this Step 6 review prompt, wait for confirmation
 - **stop** → end pipeline: "Pipeline terminated."
 
 ---

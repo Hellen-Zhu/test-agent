@@ -62,10 +62,40 @@ Consume `bddPipelineInput.phase2` only when:
 - `input.sourcePayload` is the same loaded confirmed or design-ready Story Contract, unchanged
 - `input.confirmedPhase1Report` is the human-approved output from `qa-test-analysis-agent`
 - `input.pathHints` carries optional project and `{E2E_DIR}` hints collected by `/bdd-gen`
+- `input.reinvokeContext` is optional and valid only for revision runs of this same Phase 2 agent
 
 Phase 2 input is intentionally larger than Phase 1 input because it requires the approved Phase 1 contract and path hints. Do not use `bddPipelineInput.phase1.input.sourcePayload` as a substitute for `input.confirmedPhase1Report`.
 
 If `stage`, `targetAgent`, `input.sourcePayload`, or `input.confirmedPhase1Report` is missing or inconsistent, return a `PROCESS_GAP` instead of inferring the intended invocation.
+
+## Reinvoke Context Handling
+
+Use `input.reinvokeContext` only to avoid repeating already-validated Phase 2 discovery during a revision. It is not a source of truth.
+
+Allowed reuse:
+- previous final checked Phase 2 output
+- exact user revision request
+- source payload hash and approved Phase 1 report hash, when provided
+- required reference snapshots for `bdd-case-design-methodology.md` and `bdd-feature-generation-standards.md`
+- previously resolved `{E2E_DIR}`
+- existing `.feature` style/file-mode evidence
+- TC sequence evidence
+- previous Generation Context, feature identity, file mode decisions, and target feature paths
+
+Not allowed:
+- new validation intent not present in the approved Phase 1 report
+- automation implementation artifacts, step catalogs, snippets, Java glue, page objects, API clients, fixtures, or helpers
+- cached discovery when path hints, approved Phase 1 report, or relevant feature-file scope changed
+
+On reinvoke:
+1. Confirm the context belongs to `bdd-case-design-agent` / `bdd_feature_generation`.
+2. If `sourcePayloadHash` or `confirmedPhase1ReportHash` is provided and does not match the current input, invalidate the previous output and affected discovery snapshot.
+3. Use the previous final checked Phase 2 output as the candidate to repair only when the user revision is inside BDD/case-design scope.
+4. If the user revision requires changing Phase 1 validation intent, layer, tags, AC mapping, validation target, or observable evidence, classify it as `PHASE_1_GAP`.
+5. If the user revision asks for step definitions, snippets, Java glue, page objects, API clients, fixtures, or helper implementation, classify it as `AUTOMATION_SCOPE`.
+6. Required docs may skip full reread only when `reinvokeContext.referenceSnapshot` proves the same required reference paths and hashes were verified and the previous run recorded the applied checks. If the snapshot is absent, stale, or changed, read the required docs again.
+7. Reuse project discovery only when the discovery scope is unchanged. Otherwise rescan only the invalidated scope.
+8. Always rerun the Internal Quality Loop and return a complete checked Phase 2 result.
 
 ## Source Of Truth
 
@@ -121,13 +151,14 @@ Missing optional style, path, or TC sequence evidence is not a process gap. Clas
 
 Follow these steps in order:
 
-1. Resolve required references. If any required reference is missing, return `PROCESS_GAP` and stop.
-2. Read `~/.claude/docs/bdd-case-design-methodology.md`.
-3. Read `~/.claude/docs/bdd-feature-generation-standards.md`.
+1. Validate `bddPipelineInput.phase2` and any `input.reinvokeContext`.
+2. Resolve required references. If any required reference is missing, return `PROCESS_GAP` and stop.
+3. Read `~/.claude/docs/bdd-case-design-methodology.md` and `~/.claude/docs/bdd-feature-generation-standards.md`, unless a valid reinvoke reference snapshot allows reuse without full reread.
 4. Build an internal trace index from the approved `qa-test-analysis-agent` output. This is indexing and completeness checking only. Do not re-derive, reinterpret, add, remove, or relayer any Phase 1 test point.
-5. Resolve generation context:
+5. Resolve or reuse generation context:
    - use caller path hints, source payload project hints, and workspace `CLAUDE.md` to resolve `{E2E_DIR}`
    - scan existing `.feature` files and TC IDs only for style, terminology, file mode, and TC sequence evidence
+   - on reinvoke, reuse valid discovery snapshots and rescan only invalidated scope
    - do not invent existing TC sequences
 6. Execute the methodology's BDD case design loop against the approved Phase 1 report.
 7. Derive feature identity, target feature files, and file modes according to the standards.

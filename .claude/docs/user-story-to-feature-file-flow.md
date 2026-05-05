@@ -155,6 +155,8 @@ Human review gate:
 - test points are atomic and explicit enough for Phase 2 grouping
 - missing, duplicated, or wrong-layer validation points are corrected
 
+If the reviewer requests changes, `/bdd-gen` re-invokes `qa-test-analysis-agent` with a Phase 1 `reinvokeContext` containing the previous final checked Phase 1 output and the exact user revision request. The command must not manually patch the report outside the agent's quality loop.
+
 ### 5. Phase 2 - Feature Generation
 
 After Phase 1 approval, `/bdd-gen` invokes `bdd-case-design-agent` with:
@@ -188,6 +190,8 @@ Human review gate:
 - scenarios preserve approved validation targets and observable evidence
 - compatible TPs are grouped without losing traceability
 - API and UI scenarios use business-readable step patterns without implementation details
+
+If the reviewer requests changes, `/bdd-gen` re-invokes `bdd-case-design-agent` with a Phase 2 `reinvokeContext` containing the previous final checked Phase 2 output, exact user revision request, and any still-valid discovery snapshot such as resolved `{E2E_DIR}`, feature-file style evidence, file-mode evidence, and TC sequence evidence. Required methodology and standards references may be reused only when their paths and hashes are unchanged; otherwise the agent must read them again.
 
 ### 6. Write Feature Files And Update Source
 

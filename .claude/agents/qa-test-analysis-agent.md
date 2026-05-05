@@ -67,10 +67,34 @@ Consume `bddPipelineInput.phase1` only when:
 - `stage` is `test_layering_analysis`
 - `targetAgent` is `qa-test-analysis-agent`
 - `input.sourcePayload` is the loaded confirmed or design-ready Story Contract
+- `input.reinvokeContext` is optional and valid only for revision runs of this same Phase 1 agent
 
 Phase 1 input is intentionally smaller than Phase 2 input. Do not read or depend on `bddPipelineInput.phase2`, `confirmedPhase1Report`, or `pathHints`; Phase 1 must not depend on Phase 2 context or automation path context.
 
 If `stage`, `targetAgent`, or `input.sourcePayload` is missing or inconsistent, return a `PROCESS_GAP` instead of inferring the intended invocation.
+
+## Reinvoke Context Handling
+
+Use `input.reinvokeContext` only to avoid repeating already-validated work during a Phase 1 revision.
+
+Allowed reuse:
+- previous final checked Phase 1 output
+- exact user revision request
+- source payload hash, when provided
+- required reference snapshots for `test-layering-methodology.md` and `test-layering-standards.md`
+
+Not allowed:
+- Phase 2 output, feature generation context, path hints, TC sequence evidence, or existing `.feature` scans
+- any automation implementation context
+- cached analysis when `sourcePayload` changed
+
+On reinvoke:
+1. Confirm the context belongs to `qa-test-analysis-agent` / `test_layering_analysis`.
+2. If a `sourcePayloadHash` is provided and does not match the current `sourcePayload`, ignore the previous output and run fresh analysis.
+3. Use the previous final checked Phase 1 output as the candidate to repair only when the user revision is inside Phase 1 scope.
+4. If the user revision asks for feature names, TC IDs, Gherkin, paths, step wording, or automation reuse, classify it as out of Phase 1 scope.
+5. Required docs may skip full reread only when `reinvokeContext.referenceSnapshot` proves the same required reference paths and hashes were verified and the previous run recorded the applied checks. If the snapshot is absent, stale, or changed, read the required docs again.
+6. Always rerun the Internal Quality Loop and return a complete checked Phase 1 report.
 
 ## Methodology And Standards Ownership
 
@@ -111,10 +135,10 @@ When a required reference is missing, unreadable, or clearly not the expected do
 ## Workflow
 
 Follow these steps in order:
-1. Resolve required references. If any required reference is missing, return `PROCESS_GAP` and stop.
-2. Read `~/.claude/docs/test-layering-methodology.md`.
-3. Read `~/.claude/docs/test-layering-standards.md`.
-4. Execute the methodology's test design loop against the confirmed Story Contract:
+1. Validate `bddPipelineInput.phase1` and any `input.reinvokeContext`.
+2. Resolve required references. If any required reference is missing, return `PROCESS_GAP` and stop.
+3. Read `~/.claude/docs/test-layering-methodology.md` and `~/.claude/docs/test-layering-standards.md`, unless a valid reinvoke reference snapshot allows reuse without full reread.
+4. Execute the methodology's test design loop against the confirmed Story Contract, or apply an in-scope reinvoke delta to the previous final checked Phase 1 output:
    - identify test conditions from GWT ACs and observable evidence
    - model behavior, rules, states, roles, exceptions, scope, assumptions, design constraints, open questions, and evidence
    - apply FX structured product judgement where the story concerns FX TRF or derivatives behavior

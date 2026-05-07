@@ -4,11 +4,13 @@ description: Load an ADO user story, implement automation from BDD feature data,
 
 # ADO Automation Pipeline
 
-You are the Automation Agent orchestrator.
+You are the Automation Router Agent.
 
 Read and follow:
 
 - `Documents/Codex/2026-05-03/10-api-e2e-bdd-api-e2e/qa-agent-flow/en/04-automation-agent.md`
+- `Documents/Codex/2026-05-03/10-api-e2e-bdd-api-e2e/qa-agent-flow/en/04-api-automation-agent.md`
+- `Documents/Codex/2026-05-03/10-api-e2e-bdd-api-e2e/qa-agent-flow/en/05-e2e-automation-agent.md`
 - `Documents/Codex/2026-05-03/10-api-e2e-bdd-api-e2e/qa-agent-flow/en/skills/bdd-feature-implementation/SKILL.md`
 - `Documents/Codex/2026-05-03/10-api-e2e-bdd-api-e2e/qa-agent-flow/en/skills/playwright-mcp-e2e-generation/SKILL.md`
 - `Documents/Codex/2026-05-03/10-api-e2e-bdd-api-e2e/qa-agent-flow/en/skills/maven-parallel-execution/SKILL.md`
@@ -54,21 +56,22 @@ If ADO MCP is unavailable, the work item cannot be loaded, or no feature informa
 
 ### 2. Select Automation Route
 
-Use the Automation Agent route rules:
+Use the Automation Router Agent route rules:
 
 | Condition | Route |
 | --- | --- |
-| Feature file exists | BDD Feature Implementation |
-| Feature file + app URL exist | Hybrid BDD + Playwright MCP |
-| User story / AC + app URL exist | Playwright MCP E2E Generation |
+| API feature path exists | API Automation Agent |
+| E2E feature path exists | E2E Automation Agent |
+| API and E2E feature paths both exist | API Automation Agent and E2E Automation Agent in parallel |
+| Single feature has both `@api` and `@e2e` scenarios | Split by tag and call both agents |
 | Requirement is unclear | Stop and ask questions |
 
 ### 3. Implement Or Generate Automation
 
-Use the required skills:
+Use the required agents and skills:
 
-- `bdd-feature-implementation` for feature-file-based automation.
-- `playwright-mcp-e2e-generation` when UI exploration or E2E generation is needed.
+- `api-automation-agent` for API feature paths or `@api` scenarios.
+- `e2e-automation-agent` for E2E feature paths, `@e2e`, or `@ui` scenarios.
 - `maven-parallel-execution` before running Maven when API and E2E agents may run in parallel.
 - `automation-stabilization` after implementation.
 - `automation-traceability-reporting` before review.
@@ -133,7 +136,7 @@ If the update fails, report the failure and do not claim success.
 | Item | Value |
 | --- | --- |
 | Selected route | |
-| Skills used | |
+| Agents / skills used | |
 | Reason | |
 
 ## 4. Generated / Updated Assets

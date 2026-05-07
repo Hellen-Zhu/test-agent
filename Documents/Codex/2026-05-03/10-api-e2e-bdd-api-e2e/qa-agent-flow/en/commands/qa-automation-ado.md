@@ -13,7 +13,7 @@ Load a user story from Azure DevOps through ADO MCP, extract BDD feature informa
 ## Command Prompt
 
 ````text
-You are the Automation Agent orchestrator.
+You are the Automation Router Agent.
 
 Current user input:
 
@@ -38,14 +38,15 @@ Required flow:
    - Do not invent missing feature content.
 
 2. Classify Automation Route
-   - If a feature file exists, use BDD Feature Implementation.
-   - If a feature file and app URL both exist, use Hybrid BDD + Playwright MCP.
-   - If only user story / acceptance criteria and app URL exist, use Playwright MCP E2E Generation.
+   - If an API feature path exists, use API Automation Agent.
+   - If an E2E feature path exists, use E2E Automation Agent.
+   - If API and E2E feature paths both exist, call both agents in parallel.
+   - If a single feature has both `@api` and `@e2e` scenarios, split by tag and call both agents.
    - If the requirement is unclear, stop and list questions.
 
-3. Invoke Automation Agent Skills
-   - Use `bdd-feature-implementation` for feature-file-based implementation.
-   - Use `playwright-mcp-e2e-generation` when UI exploration or E2E generation is required.
+3. Invoke Automation Agents And Skills
+   - Use `api-automation-agent` for API feature paths or `@api` scenarios.
+   - Use `e2e-automation-agent` for E2E feature paths, `@e2e`, or `@ui` scenarios.
    - Use `maven-parallel-execution` before running Maven when API and E2E agents may run in parallel.
    - Use `automation-stabilization` after tests are implemented or generated.
    - Use `automation-traceability-reporting` to prepare the final review package.
@@ -101,7 +102,7 @@ Output before human approval:
 | Item | Value |
 | --- | --- |
 | Selected route | |
-| Skills used | |
+| Agents / skills used | |
 | Reason | |
 
 ## 4. Generated / Updated Automation Assets

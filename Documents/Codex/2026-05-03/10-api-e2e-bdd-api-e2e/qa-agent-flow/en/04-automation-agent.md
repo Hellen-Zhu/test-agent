@@ -1,24 +1,27 @@
-# Automation Agent
+# Automation Router Agent
 
 ## Purpose
 
-The Automation Agent turns BDD feature files, user stories, acceptance criteria, and real application behavior into executable automated tests.
+The Automation Router Agent routes feature-file automation work to the API Automation Agent, the E2E Automation Agent, or both.
 
-It is a thin orchestrator. Detailed implementation behavior lives in skills.
+It is a thin router. API and E2E implementation behavior lives in separate agents.
 
 ## Core Rule
 
 ```text
-Feature file = what to validate
-Playwright MCP = how the real UI behaves
-Automation Agent = route, call skills, run, stabilize, report
+Feature file path = routing signal
+API Automation Agent = API feature implementation
+E2E Automation Agent = E2E feature implementation
+Automation Router Agent = classify, route, coordinate, report
 ```
 
 ## Inputs
 
 - User story / acceptance criteria
 - Validation points
-- Feature file
+- API feature file path
+- E2E feature file path
+- Feature file content
 - App URL
 - Test environment and credentials
 - Existing automation code
@@ -26,37 +29,51 @@ Automation Agent = route, call skills, run, stabilize, report
 
 ## Outputs
 
-- BDD step definitions
-- Playwright E2E specs
-- Page objects
-- API clients
-- Fixtures / test data setup
-- Locator map
-- Execution report
-- Traceability matrix
+- API Automation Agent output
+- E2E Automation Agent output
+- Maven parallel execution plan when both agents run
+- Combined execution summary
+- Combined traceability matrix
 - Open questions / blockers
 
-## Skills
+## Child Agents
 
-The agent may call these skills:
+The router may call these agents:
 
-| Skill | Use When |
+| Agent | Use When |
 | --- | --- |
-| `bdd-feature-implementation` | A `.feature` file exists and needs automation implementation |
-| `playwright-mcp-e2e-generation` | E2E tests must be generated from requirements and a runnable app |
-| `maven-parallel-execution` | API and E2E agents may run Maven in parallel |
-| `automation-stabilization` | Tests need execution, debugging, flake reduction, or reliability review |
-| `automation-traceability-reporting` | Final output must map requirements to scenarios and automation assets |
+| `api-automation-agent` | API feature file paths or `@api` scenarios exist |
+| `e2e-automation-agent` | E2E feature file paths, `@e2e`, or `@ui` scenarios exist |
 
 ## Route Decision
 
-| Condition | Route | Skills |
-| --- | --- | --- |
-| Feature file exists | BDD Feature Implementation | `bdd-feature-implementation` |
-| User story / AC + app URL exist | Playwright MCP E2E Generation | `playwright-mcp-e2e-generation` |
-| Feature file + app URL exist | Hybrid BDD + Playwright MCP | `bdd-feature-implementation`, `playwright-mcp-e2e-generation` |
-| Scenario is better tested below UI | API / service automation | `bdd-feature-implementation` |
-| Requirement is unclear | Stop and ask questions | None |
+| Condition | Route |
+| --- | --- |
+| API feature path exists | Call `api-automation-agent` |
+| E2E feature path exists | Call `e2e-automation-agent` |
+| API and E2E feature paths both exist | Call both agents in parallel after Maven isolation planning |
+| Single feature file contains both `@api` and `@e2e` scenarios | Split by tag and call both agents |
+| Feature path or tags are unclear | Stop and ask questions |
+
+## Feature Path Classification
+
+Treat a feature as API when its path or tags contain:
+
+- `/api/`
+- `features/api/`
+- `src/test/resources/features/api/`
+- `.api.feature`
+- `@api`
+
+Treat a feature as E2E when its path or tags contain:
+
+- `/e2e/`
+- `/ui/`
+- `features/e2e/`
+- `src/test/resources/features/e2e/`
+- `.e2e.feature`
+- `@e2e`
+- `@ui`
 
 ## Test Layer Rules
 
@@ -75,12 +92,11 @@ The agent may call these skills:
 1. Classify input
 2. Decide test layer
 3. Select route
-4. Call the required skill or skills
-5. Reuse existing automation assets before creating new ones
-6. Implement or generate missing assets
-7. Call `maven-parallel-execution` before running Maven if another agent may run tests in parallel
-8. Call automation-stabilization when needed
-9. Call automation-traceability-reporting for final output
+4. Route to API agent, E2E agent, or both
+5. If both, create a Maven parallel execution plan first
+6. Run child agents with disjoint ownership
+7. Merge outputs
+8. Return review package
 ```
 
 ## Parallel Maven Rule
@@ -95,67 +111,63 @@ Preferred order:
 
 Never run `mvn clean` in parallel agents against the same workspace.
 
-## Hybrid Flow
+## Both-Agent Flow
 
-Use hybrid mode when both feature files and app URL are available:
+Use both-agent mode when API and E2E feature paths both exist:
 
 ```text
-Parse feature file
+Extract API and E2E feature paths
   ↓
-Select scenarios that truly need UI E2E
+Create Maven parallel execution plan
   ↓
-Use Playwright MCP to explore matching UI flow
+Call API Automation Agent and E2E Automation Agent with disjoint inputs
   ↓
-Create locator map and page objects
+Merge API and E2E outputs
   ↓
-Implement BDD steps with Playwright
-  ↓
-Run, stabilize, and report
+Return combined review package
 ```
 
 ## Quality Gate
 
 The output is ready only when:
 
-- The selected route is justified.
-- E2E tests are used only where UI validation is necessary.
-- Existing automation assets were checked first.
-- Playwright MCP was used when real UI behavior was needed.
-- Locators are stable.
-- Step definitions are thin.
-- Test data is isolated and cleanable.
+- Feature paths were classified correctly.
+- API and E2E responsibilities are separated.
 - Maven execution is parallel-safe when API and E2E agents run concurrently.
-- Tests can run locally and in CI.
-- Execution result is reported.
-- Traceability is complete.
+- Child-agent outputs are merged without hiding blockers.
+- Traceability is complete across API and E2E scenarios.
 
 ## Output Format
 
 ```md
-# Automation Agent Output
+# Automation Router Agent Output
 
 ## 1. Route Decision
-- Selected route:
+- Selected route: API / E2E / Both
 - Reason:
-- Skills used:
+- Agents called:
 
-## 2. Scenario Strategy
-| Scenario | Layer | Needs Playwright MCP | Reason |
-| --- | --- | --- | --- |
-
-## 3. Generated / Updated Assets
-| Asset | Action | Notes |
+## 2. Feature Path Classification
+| Feature Path | Type | Reason |
 | --- | --- | --- |
 
-## 4. Execution Result
-| Command | Result | Notes |
-| --- | --- | --- |
+## 3. Maven Parallel Execution
+| Item | Value |
+| --- | --- |
 
-## 5. Traceability
-| User Story / AC | Scenario | Automation Asset | Status |
-| --- | --- | --- | --- |
+## 4. API Agent Result
+| Item | Value |
+| --- | --- |
 
-## 6. Open Questions / Blockers
+## 5. E2E Agent Result
+| Item | Value |
+| --- | --- |
+
+## 6. Combined Traceability
+| User Story / AC | Scenario | Layer | Automation Asset | Status |
+| --- | --- | --- | --- | --- |
+
+## 7. Open Questions / Blockers
 | Item | Impact | Required Action |
 | --- | --- | --- |
 ```

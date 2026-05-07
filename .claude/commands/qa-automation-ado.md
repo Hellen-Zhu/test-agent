@@ -11,6 +11,7 @@ Read and follow:
 - `Documents/Codex/2026-05-03/10-api-e2e-bdd-api-e2e/qa-agent-flow/en/04-automation-agent.md`
 - `Documents/Codex/2026-05-03/10-api-e2e-bdd-api-e2e/qa-agent-flow/en/skills/bdd-feature-implementation/SKILL.md`
 - `Documents/Codex/2026-05-03/10-api-e2e-bdd-api-e2e/qa-agent-flow/en/skills/playwright-mcp-e2e-generation/SKILL.md`
+- `Documents/Codex/2026-05-03/10-api-e2e-bdd-api-e2e/qa-agent-flow/en/skills/maven-parallel-execution/SKILL.md`
 - `Documents/Codex/2026-05-03/10-api-e2e-bdd-api-e2e/qa-agent-flow/en/skills/automation-stabilization/SKILL.md`
 - `Documents/Codex/2026-05-03/10-api-e2e-bdd-api-e2e/qa-agent-flow/en/skills/automation-traceability-reporting/SKILL.md`
 
@@ -68,6 +69,7 @@ Use the required skills:
 
 - `bdd-feature-implementation` for feature-file-based automation.
 - `playwright-mcp-e2e-generation` when UI exploration or E2E generation is needed.
+- `maven-parallel-execution` before running Maven when API and E2E agents may run in parallel.
 - `automation-stabilization` after implementation.
 - `automation-traceability-reporting` before review.
 
@@ -77,6 +79,9 @@ Rules:
 - Implement only missing assets.
 - Keep step definitions thin.
 - Use stable Playwright locators when UI automation is needed.
+- Do not let API and E2E agents share the same Maven `target/` directory in parallel.
+- Prefer isolated git worktrees; otherwise use isolated Maven build directories such as `target-api-agent` and `target-e2e-agent`.
+- Never run `mvn clean` in a shared workspace while another agent may be running Maven.
 - Run the most focused test command first.
 
 ### 4. Human Review Gate
@@ -139,6 +144,15 @@ If the update fails, report the failure and do not claim success.
 | Command | Result | Notes |
 | --- | --- | --- |
 
+## 5.1 Maven Parallel Execution
+| Item | Value |
+| --- | --- |
+| Strategy | |
+| Agent ID | |
+| Build output directory | |
+| Local Maven repository | |
+| Parallel-safe | Yes / No |
+
 ## 6. Traceability
 | User Story / AC | Scenario | Automation Asset | Status |
 | --- | --- | --- | --- |
@@ -150,6 +164,7 @@ If the update fails, report the failure and do not claim success.
 | Correct route was selected | Pass / Fail | |
 | Existing assets were checked first | Pass / Fail | |
 | E2E scope is justified | Pass / Fail | |
+| Maven execution is parallel-safe | Pass / Fail / N/A | |
 | Tests were run | Pass / Fail | |
 | Traceability is complete | Pass / Fail | |
 | Ready to update ADO | Yes / No | |
@@ -171,4 +186,3 @@ If the update fails, report the failure and do not claim success.
 | Test cases linked / updated | Yes / No / Not supported | |
 | Final status | |
 ```
-

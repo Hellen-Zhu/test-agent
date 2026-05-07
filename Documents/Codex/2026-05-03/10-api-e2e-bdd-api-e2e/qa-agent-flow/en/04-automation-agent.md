@@ -44,6 +44,7 @@ The agent may call these skills:
 | --- | --- |
 | `bdd-feature-implementation` | A `.feature` file exists and needs automation implementation |
 | `playwright-mcp-e2e-generation` | E2E tests must be generated from requirements and a runnable app |
+| `maven-parallel-execution` | API and E2E agents may run Maven in parallel |
 | `automation-stabilization` | Tests need execution, debugging, flake reduction, or reliability review |
 | `automation-traceability-reporting` | Final output must map requirements to scenarios and automation assets |
 
@@ -77,10 +78,22 @@ The agent may call these skills:
 4. Call the required skill or skills
 5. Reuse existing automation assets before creating new ones
 6. Implement or generate missing assets
-7. Run tests
+7. Call `maven-parallel-execution` before running Maven if another agent may run tests in parallel
 8. Call automation-stabilization when needed
 9. Call automation-traceability-reporting for final output
 ```
+
+## Parallel Maven Rule
+
+When API and E2E agents run in parallel, they must not share the same Maven `target/` directory.
+
+Preferred order:
+
+1. Run each agent in a separate git worktree or clone.
+2. If sharing one workspace, use isolated Maven build directories such as `target-api-agent` and `target-e2e-agent`.
+3. If output cannot be isolated, Maven execution must be serialized.
+
+Never run `mvn clean` in parallel agents against the same workspace.
 
 ## Hybrid Flow
 
@@ -111,6 +124,7 @@ The output is ready only when:
 - Locators are stable.
 - Step definitions are thin.
 - Test data is isolated and cleanable.
+- Maven execution is parallel-safe when API and E2E agents run concurrently.
 - Tests can run locally and in CI.
 - Execution result is reported.
 - Traceability is complete.
@@ -145,4 +159,3 @@ The output is ready only when:
 | Item | Impact | Required Action |
 | --- | --- | --- |
 ```
-

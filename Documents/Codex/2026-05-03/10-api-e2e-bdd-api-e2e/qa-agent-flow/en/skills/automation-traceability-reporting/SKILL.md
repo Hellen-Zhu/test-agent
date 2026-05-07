@@ -29,15 +29,24 @@ Use this skill before final delivery.
 | Command | Result | Notes |
 | --- | --- | --- |
 
-## 5. Traceability
+## 5. Maven Parallel Execution
+| Item | Value |
+| --- | --- |
+| Strategy | |
+| Agent ID | |
+| Build output directory | |
+| Local Maven repository | |
+| Parallel-safe | Yes / No |
+
+## 6. Traceability
 | User Story / AC | Scenario | Automation Asset | Status |
 | --- | --- | --- | --- |
 
-## 6. Open Questions / Blockers
+## 7. Open Questions / Blockers
 | Item | Impact | Required Action |
 | --- | --- | --- |
 
-## 7. Quality Gate
+## 8. Quality Gate
 | Gate | Result | Notes |
 | --- | --- | --- |
 ```
@@ -51,7 +60,7 @@ Use this skill before final delivery.
 - Locators are stable.
 - Step definitions are thin.
 - Test data is isolated and cleanable.
+- Maven execution is parallel-safe when API and E2E agents run concurrently.
 - Tests can run locally and in CI.
 - Execution result is reported.
 - Traceability is complete.
-

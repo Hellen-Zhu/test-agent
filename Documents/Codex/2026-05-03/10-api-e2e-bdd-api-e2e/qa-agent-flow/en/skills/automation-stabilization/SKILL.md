@@ -29,10 +29,20 @@ Return stabilization result
 - Use web-first assertions.
 - Prefer stable locators.
 - Keep test data isolated, repeatable, cleanable, and parallel-safe.
+- Do not run Maven in parallel against the same `target/` directory.
+- Do not run `mvn clean` while another agent may be using the same workspace.
 - Do not depend on execution order.
 - Capture screenshots, traces, videos, logs, and API details on failure.
 - Do not hide product bugs with retries.
 - Document flaky risks.
+
+## Maven Parallel Safety
+
+Before running Maven, confirm one of these is true:
+
+- This agent owns an isolated git worktree or clone.
+- The command uses an isolated build directory, for example `-Dagent.id=api-agent` with `target-${agent.id}` configured in `pom.xml`.
+- Maven execution is serialized.
 
 ## Output
 
@@ -45,4 +55,3 @@ Return stabilization result
 | Issue | Fix | Residual Risk |
 | --- | --- | --- |
 ```
-

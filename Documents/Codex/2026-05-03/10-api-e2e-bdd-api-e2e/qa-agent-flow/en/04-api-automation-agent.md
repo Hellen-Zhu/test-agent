@@ -31,7 +31,7 @@ It owns API-level automation only. It does not explore UI flows and does not own
 
 | Skill | Use When |
 | --- | --- |
-| `bdd-feature-implementation` | Implement API `.feature` scenarios |
+| `api-bdd-implementation` | Implement API `.feature` scenarios |
 | `maven-parallel-execution` | Another agent may run Maven at the same time |
 | `automation-stabilization` | API tests need execution/debug/stabilization |
 | `automation-traceability-reporting` | Final API automation output is required |

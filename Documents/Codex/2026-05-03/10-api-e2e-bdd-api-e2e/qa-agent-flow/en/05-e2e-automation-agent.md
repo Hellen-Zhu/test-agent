@@ -32,7 +32,7 @@ It owns UI E2E automation only. It does not implement API-only scenarios and doe
 
 | Skill | Use When |
 | --- | --- |
-| `bdd-feature-implementation` | Implement E2E `.feature` scenarios |
+| `e2e-bdd-implementation` | Implement E2E `.feature` scenarios |
 | `playwright-mcp-e2e-generation` | Real UI exploration or E2E generation is required |
 | `maven-parallel-execution` | API agent may run Maven at the same time |
 | `automation-stabilization` | E2E tests need execution/debug/stabilization |

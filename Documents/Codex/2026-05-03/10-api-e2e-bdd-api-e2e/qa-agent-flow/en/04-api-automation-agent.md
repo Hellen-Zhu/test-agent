@@ -31,7 +31,8 @@ It owns API-level automation only. It does not explore UI flows and does not own
 
 | Skill | Use When |
 | --- | --- |
-| `api-bdd-implementation` | Implement API `.feature` scenarios |
+| `api-contract-discovery` | API contract info (endpoint, schema) is missing and needs to be derived from Swagger/OpenAPI |
+| `api-bdd-implementation` | Implement API `.feature` scenarios (requires pre-resolved contract info) |
 | `maven-parallel-execution` | Another agent may run Maven at the same time |
 | `automation-stabilization` | API tests need execution/debug/stabilization |
 | `automation-traceability-reporting` | Final API automation output is required |
@@ -41,8 +42,11 @@ It owns API-level automation only. It does not explore UI flows and does not own
 ```text
 1. Load API feature file
 2. Validate API scenarios and tags
-3. Map scenarios to existing step definitions
-4. Reuse existing API clients, fixtures, hooks, and assertions
+3. Check if api-contract-hint.md exists or contract info is available
+   ├─ Yes → Pass contract info to api-bdd-implementation
+   └─ No  → Call api-contract-discovery to derive contract from Swagger
+            → Pass discovery output to api-bdd-implementation
+4. Call api-bdd-implementation with feature + contract info
 5. Implement missing API automation assets
 6. Prepare focused API test command
 7. Use maven-parallel-execution before running Maven if E2E agent may run concurrently

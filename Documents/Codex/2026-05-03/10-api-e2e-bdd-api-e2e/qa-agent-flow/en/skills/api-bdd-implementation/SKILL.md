@@ -13,8 +13,7 @@ fingerprint:
     feature_file: "Path to API .feature file with @api tags"
     glue_catalog: "REST API built-in glue step catalog (step-glue-catalog.md)"
   optional_inputs:
-    contract_hint: "api-contract-hint.md from upstream BDD Case Design Agent"
-    swagger_doc: "OpenAPI/Swagger specification (fallback when contract hint missing)"
+    contract_info: "Pre-resolved API contract (from api-contract-hint.md or api-contract-discovery skill)"
     existing_snippets: "Existing .snippet files for reuse"
     existing_yamldata: "Existing .yml test data files"
   environment:
@@ -89,14 +88,15 @@ rollback: >
       "type": "string",
       "description": "Absolute or relative path to the API .feature file"
     },
-    "contract_hint_file": {
-      "type": "string",
-      "description": "Path to api-contract-hint.md from upstream BDD Case Design Agent",
-      "default": null
-    },
-    "swagger_doc": {
-      "type": "string",
-      "description": "Path to OpenAPI/Swagger JSON or YAML (fallback when contract hint missing)",
+    "contract_info": {
+      "type": "object",
+      "description": "Pre-resolved API contract info (endpoint, method, request/response schema). Supplied by agent from api-contract-hint.md or api-contract-discovery skill output.",
+      "properties": {
+        "endpoint": {"type": "string"},
+        "method": {"type": "string"},
+        "request_schema": {"type": "object"},
+        "response_schema": {"type": "object"}
+      },
       "default": null
     },
     "glue_catalog": {
@@ -250,8 +250,10 @@ produces a new context. The agent (not the skill) persists context between
 phases.
 
 ```text
-INTAKE    → Load feature. Derive API contract (endpoint, method, body schema)
-            from contract hint → Swagger → ask user.
+INTAKE    → Load feature. Receive API contract info from agent input
+            (endpoint, method, request/response schema).
+            If contract info is missing, agent must call api-contract-discovery
+            first and pass the result as input.
             Output: enriched feature context with contract info
 
 ANALYZE   → Extract business scenarios and steps.
@@ -297,11 +299,9 @@ VALIDATE  → Verify all steps have snippet coverage.
 ```text
 Scenario step (e.g., "When I create a trade allocation")
   ↓
-Read api-contract-hint.md
-  ├─ Match found → Use endpoint, method, body schema
-  └─ No match → Read Swagger/OpenAPI
-       ├─ Found → Use
-       └─ Not found → Stop and ask user
+Receive contract_info from agent input
+  ├─ Present → Extract endpoint, method, request/response schema
+  └─ Missing → Return status: "failure", ask agent to call api-contract-discovery
   ↓
 Determine request structure
   ↓
@@ -436,7 +436,7 @@ responsible for backing up existing files before invoking this skill.
 | 3 | Java step is last resort | COMPOSE phase |
 | 4 | Each scenario must have `@TC-xxx` tag binding to yamldata key | MATERIALIZE phase |
 | 5 | Test data is isolated in `.yml` files | MATERIALIZE phase |
-| 6 | Request info from contract hint → Swagger → ask user | INTAKE phase |
+| 6 | Contract info received from agent (from api-contract-discovery or api-contract-hint.md) | INTAKE phase |
 | 7 | Fuzzy match existing snippets before creating new ones | MATCH phase |
 | 8 | Parameterize snippets for reuse across scenarios | COMPOSE phase |
 | 9 | Skill produces self-contained output context | Output schema |

@@ -1,0 +1,29 @@
+{
+  "id": 48217,
+  "rev": 5,
+  "fields": {
+    "System.Id": 48217,
+    "System.WorkItemType": "User Story",
+    "System.Title": "User can sign in with email and password",
+    "System.State": "Active",
+    "System.AreaPath": "Hellen\\Identity",
+    "System.IterationPath": "Hellen\\Sprint 24.05",
+    "System.AssignedTo": {
+      "displayName": "Jingge Liu",
+      "uniqueName": "jingge.ai@gmail.com"
+    },
+    "System.Tags": "auth; bdd; sprint-24.05",
+    "System.Description": "<div><p>As a registered user,<br>I want to sign in with my email and password,<br>so that I can access my account and continue where I left off.</p></div>",
+    "Microsoft.VSTS.Common.AcceptanceCriteria": "<div><ol><li>Given valid credentials, when I submit the login form, then I am redirected to /dashboard within 2 seconds.</li><li>Given invalid credentials, the form shows the error \"Invalid email or password\" and does not navigate away.</li><li>POST /api/v1/auth/login returns 200 with a signed JWT in the response body for valid credentials, and 401 with an error code for invalid credentials.</li><li>After 5 consecutive failed login attempts within a 10-minute window, the account is locked and the API returns 423 Locked until an admin unlocks it.</li><li>The login button is disabled while a request is in flight, to prevent duplicate submissions.</li><li>The email field validates basic email shape on blur; the password field is masked by default with a show/hide toggle.</li></ol></div>",
+    "Custom.BddFeatureFiles": "[\"features/api/auth/login.feature\", \"features/api/auth/lockout.feature\", \"features/ui/auth/login-form.feature\", \"features/ui/auth/redirect-after-login.feature\"]"
+  },
+  "_links": {
+    "self": {
+      "href": "https://dev.azure.com/hellen-org/Hellen/_apis/wit/workItems/48217"
+    },
+    "html": {
+      "href": "https://dev.azure.com/hellen-org/Hellen/_workitems/edit/48217"
+    }
+  },
+  "url": "https://dev.azure.com/hellen-org/Hellen/_apis/wit/workItems/48217"
+}

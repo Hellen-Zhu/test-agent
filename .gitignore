@@ -1,0 +1,30 @@
+# Claude Code — local-only state
+.claude/settings.local.json
+.claude/projects/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Java / Maven (anticipating)
+target/
+*.class
+
+# Cucumber / Playwright artifacts
+target/cucumber-reports/
+target/traces/
+
+# Secrets
+*.env
+.env.local
+.env.test.local
+
+# Logs
+*.log
+
+# Local setup notes containing SSH key fingerprints / personal emails
+setup-github.md

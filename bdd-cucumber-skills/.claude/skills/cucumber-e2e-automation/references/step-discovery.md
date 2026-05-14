@@ -178,15 +178,21 @@ This section is for the framework/build engineer who sets up the index; the agen
       <configuration>
         <outputDir>${project.basedir}/.bdd-step-index</outputDir>
         <includeArtifacts>
+          <!-- UI layer -->
           <artifact>com.hellen.framework.bdd:core-steps</artifact>
           <artifact>com.hellen.framework.bdd:web-steps</artifact>
+          <!-- API layer (same framework repo, separate Maven artifact) -->
+          <artifact>com.hellen.framework.bdd:api-steps</artifact>
         </includeArtifacts>
+        <shardByArtifact>true</shardByArtifact>
         <indexFormat>pipe</indexFormat>
       </configuration>
     </execution>
   </executions>
 </plugin>
 ```
+
+This is the single canonical declaration — the same block lives in `cucumber-api-automation/references/step-discovery.md`. The project's `pom.xml` should hold exactly one copy of this plugin block, not one per layer; both UI and API agents consume the same `.bdd-step-index/` output.
 
 Why pre-materialize at build time:
 

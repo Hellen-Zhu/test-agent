@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  test-agent — BDD test project skeleton
+
+  This pom.xml is a starting template; fields marked TODO must be edited
+  before first use. See bdd-cucumber-skills/.claude/skills/*/SKILL.md for
+  the conventions this build supports.
+
+  Out of the box this build:
+    - Compiles Java 17 sources/tests
+    - Runs Cucumber 4.x scenarios under JUnit 4 via Surefire
+    - Pre-extracts the internal BDD framework's step library to
+      .bdd-step-index/*.txt at the generate-test-resources phase
+      (so agents can do tier-1 step discovery via Read/Glob/Grep
+      without Bash or Maven invocation — see
+      .bdd-step-index/README.md)
+    - Pulls Playwright Java (UI) and REST Assured (API)
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- TODO: confirm groupId/artifactId with framework team naming policy -->
+    <groupId>com.hellen.tests</groupId>
+    <artifactId>test-agent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>test-agent</name>
+    <description>BDD Cucumber test project consuming the internal Java BDD framework (UI: Playwright, API: REST Assured).</description>
+
+    <properties>
+        <!-- Compiler -->
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- BDD runner (per SKILL.md Tooling assumptions) -->
+        <cucumber.version>4.8.1</cucumber.version>
+        <junit.version>4.13.2</junit.version>
+
+        <!-- UI -->
+        <playwright.version>1.40.0</playwright.version>
+
+        <!-- API -->
+        <rest-assured.version>4.5.1</rest-assured.version>
+
+        <!-- Shared assertions -->
+        <hamcrest.version>2.2</hamcrest.version>
+
+        <!-- Internal BDD framework — TODO: confirm groupId/version with framework team.
+             Single version property keeps core-steps / web-steps / api-steps aligned. -->
+        <hellen.framework.groupId>com.hellen.framework.bdd</hellen.framework.groupId>
+        <hellen.framework.version>2.1.0</hellen.framework.version>
+
+        <!-- Build plugins -->
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+        <!-- TODO: confirm step-index-maven-plugin coordinates with framework team -->
+        <step-index-plugin.groupId>com.hellen.framework</step-index-plugin.groupId>
+        <step-index-plugin.version>1.0.0</step-index-plugin.version>
+    </properties>
+
+    <dependencies>
+        <!-- ====================================================================
+             Cucumber 4.x — BDD runner + Picocontainer for scenario-scoped DI
+             ==================================================================== -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-picocontainer</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- ====================================================================
+             Internal BDD framework — owns the built-in step library.
+             Sources JARs power the .bdd-step-index/ generation; runtime JARs
+             provide the @Given/@When/@Then implementations the tests invoke.
+             ==================================================================== -->
+        <dependency>
+            <groupId>${hellen.framework.groupId}</groupId>
+            <artifactId>core-steps</artifactId>
+            <version>${hellen.framework.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${hellen.framework.groupId}</groupId>
+            <artifactId>web-steps</artifactId>
+            <version>${hellen.framework.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${hellen.framework.groupId}</groupId>
+            <artifactId>api-steps</artifactId>
+            <version>${hellen.framework.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- ====================================================================
+             UI layer — Playwright Java
+             ==================================================================== -->
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>${playwright.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- ====================================================================
+             API layer — REST Assured + JSON Schema validator
+             ==================================================================== -->
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>${rest-assured.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>json-schema-validator</artifactId>
+            <version>${rest-assured.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- ====================================================================
+             Shared assertions — Hamcrest 2.x (per Hard Rule S2 / S5)
+             ==================================================================== -->
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
+            <version>${hamcrest.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- ================================================================
+                 Java compiler
+                 ================================================================ -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+            </plugin>
+
+            <!-- ================================================================
+                 Step index generator — pre-extracts built-in @Given/@When/@Then
+                 from the internal BDD framework's sources JARs into
+                 .bdd-step-index/*.txt so agents can do reuse-first discovery
+                 via Read/Glob/Grep with no Bash, no mvn invocation at runtime.
+
+                 Owned by the framework team; coordinates above are placeholders.
+                 See bdd-cucumber-skills/.bdd-step-index/README.md and the
+                 step-discovery.md references in both skills.
+                 ================================================================ -->
+            <plugin>
+                <groupId>${step-index-plugin.groupId}</groupId>
+                <artifactId>step-index-maven-plugin</artifactId>
+                <version>${step-index-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-step-index</id>
+                        <phase>generate-test-resources</phase>
+                        <goals><goal>index-steps</goal></goals>
+                        <configuration>
+                            <outputDir>${project.basedir}/.bdd-step-index</outputDir>
+                            <includeArtifacts>
+                                <!-- UI layer -->
+                                <artifact>${hellen.framework.groupId}:core-steps</artifact>
+                                <artifact>${hellen.framework.groupId}:web-steps</artifact>
+                                <!-- API layer (same framework repo, separate artifact) -->
+                                <artifact>${hellen.framework.groupId}:api-steps</artifact>
+                            </includeArtifacts>
+                            <shardByArtifact>true</shardByArtifact>
+                            <indexFormat>pipe</indexFormat>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- ================================================================
+                 Test runner — Surefire executes Cucumber JUnit runner classes
+                 named Run*Test.java (one per top-level feature area).
+
+                 systemPropertyVariables surface a few keys the skills expect
+                 (Hard Rule 7 in cucumber-api-automation, etc.). Provide
+                 defaults via src/test/resources/application-test.properties;
+                 CI overrides via -Dtest.<key>=… on the mvn command line.
+                 ================================================================ -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <includes>
+                        <include>**/Run*Test.java</include>
+                    </includes>
+                    <systemPropertyVariables>
+                        <test.env>${test.env}</test.env>
+                        <test.api.baseUrl>${test.api.baseUrl}</test.api.baseUrl>
+                        <test.api.docsUrl>${test.api.docsUrl}</test.api.docsUrl>
+                        <test.ui.baseUrl>${test.ui.baseUrl}</test.ui.baseUrl>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!--
+      Profiles set per-env defaults for the system properties Surefire forwards
+      into tests. Defaults below are illustrative — TODO: replace with the real
+      hostnames from the framework / SRE team.
+
+      Activation: `mvn test -Plocal` / `-Pstaging` / `-Pprod`.
+      `local` is active by default so `mvn test` Just Works for a dev loop.
+    -->
+    <profiles>
+        <profile>
+            <id>local</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <test.env>local</test.env>
+                <test.api.baseUrl>http://localhost:8080</test.api.baseUrl>
+                <test.api.docsUrl>http://localhost:8080/v3/api-docs</test.api.docsUrl>
+                <test.ui.baseUrl>http://localhost:3000</test.ui.baseUrl>
+            </properties>
+        </profile>
+        <profile>
+            <id>staging</id>
+            <properties>
+                <test.env>staging</test.env>
+                <test.api.baseUrl>https://api.staging.hellen.example</test.api.baseUrl>
+                <test.api.docsUrl>https://api.staging.hellen.example/v3/api-docs</test.api.docsUrl>
+                <test.ui.baseUrl>https://app.staging.hellen.example</test.ui.baseUrl>
+            </properties>
+        </profile>
+        <profile>
+            <id>prod</id>
+            <properties>
+                <test.env>prod</test.env>
+                <test.api.baseUrl>https://api.hellen.example</test.api.baseUrl>
+                <test.api.docsUrl>https://api.hellen.example/v3/api-docs</test.api.docsUrl>
+                <test.ui.baseUrl>https://app.hellen.example</test.ui.baseUrl>
+            </properties>
+        </profile>
+    </profiles>
+</project>

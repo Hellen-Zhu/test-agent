@@ -31,6 +31,7 @@ Do NOT use this skill when:
 7. NEVER hardcode credentials, tokens, base URLs. Use `System.getProperty("test.<key>")` with sensible defaults from `src/test/resources/application-test.properties`.
 8. EVERY response assertion MUST include a schema check via `JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/<area>/<name>.json")` for any non-trivial response body.
 9. **The SUT's online OpenAPI/Swagger spec is the upstream source of truth** for endpoints, status codes, and request/response shapes. The agent reads it via `WebFetch` against the URL resolved from `application-test*.properties` (`test.api.docsUrl` or equivalent, environment-pinned). Local `schemas/<area>/*.json` files are spec-pinned snapshots — authoritative for `matchesJsonSchemaInClasspath` at runtime, but the spec is upstream. **Drift between spec and local schema is surfaced in the output report, NEVER silently fixed by the agent.**
+10. **Two mandatory pre-handoff gates: self-review pass + LSP static check.** Hand-off is blocked unless BOTH have run with documented results. **Self-review** is the agent's own checklist audit against Hard Rules 1–9 and Output-report completeness (see §11 Gate 1) — catches semantic/convention issues LSP can't see (e.g. an inline `RestAssured.given()`, a missing cleanup registration, a forgotten schema check). **LSP** is a static check via the language server on every `.java` file written or edited; iterate up to 3 passes fixing SYNTACTIC diagnostics, surface SEMANTIC ones verbatim. Self-review first, LSP after (self-review may produce code edits that affect what LSP sees). Skipping either gate, or "fixing" diagnostics by suppression rather than addressing them, is a review-rejection.
 
 ## Standards (index)
 
@@ -77,13 +78,48 @@ For each `.feature` file you implement:
 9. **Implement `@After` cleanup**. Drain `ScenarioContext.cleanupActions` in LIFO order; swallow exceptions per action but log them.
 10. **Implement fixtures.** Place under `src/test/resources/fixtures/<area>/<name>.json`. Load via `FixtureLoader.load("auth/valid-login")`.
 
-11. **Hand off — do NOT run tests.** This skill is **write-only**. Test execution is the orchestrator's responsibility, performed via the `cucumber-test-execution` skill in a separate step (typically a separate agent invocation). The api-test-agent intentionally has no `Bash` tool — there is no path for this skill to run `mvn test` itself.
+11. **Pre-handoff gates — self-review + LSP static check.** Per Hard Rule 10. Two gates run in sequence before hand-off.
+
+    #### Gate 1: Self-review pass
+
+    Re-read your own output against the checklist below. For every item that fails, Edit the relevant file to fix it. Then re-check. Record what you found and changed in the Output report's `Self-review findings` block (empty list = "clean self-review" is a valid and expected outcome).
+
+    **Checklist (audit each item against your run, not against the codebase in general):**
+
+    1. **No `RestAssured.given()` inside any step def class** (Hard Rule 4). Grep your touched stepdefs for `RestAssured\.given\(|given\(\)\.` — all HTTP must route through the typed client.
+    2. **No inline test data in step defs** (Hard Rule 5). Grep for JSON-looking strings (`"{\\\"`, etc.) in stepdef files — fixtures should be in `src/test/resources/fixtures/`.
+    3. **Every scenario that creates server-side state has a matching cleanup registered** (Hard Rule 6). Walk each `@Given` you wrote that mutates state; verify a corresponding `ScenarioContext.cleanupActions` push.
+    4. **No hardcoded URLs / tokens / credentials** (Hard Rule 7). Grep for `http://`, `https://`, `Bearer `, `password`, etc. in touched files.
+    5. **Every non-trivial response assertion has a schema check** via `matchesJsonSchemaInClasspath(...)` (Hard Rule 8). Walk each `@Then` that asserts response body; verify a schema validator call accompanies it.
+    6. **SUT spec was consulted before authoring** (Hard Rule 9). The Output report has a real URL in `SUT contract source` and concrete endpoints in `Endpoints touched by feature` — or an explicit `unreachable — <reason>` with that reason recorded.
+    7. **Every Gherkin line in every scenario has exactly one tag** (REUSE_BUILTIN / REUSE_CLIENT / REUSE_STEP / REUSE_FIXTURE / REUSE_SCHEMA / NEW_*). Untagged lines are a procedure violation.
+    8. **Every NEW_\* has a written justification** in the Output-report draft (not just the tag count). Justification cites which tier/glob was consulted and what it returned.
+    9. **Scope discipline** — you only touched files this feature required. No "while I was here" refactors of unrelated clients, fixtures, or schemas. Any file in your changeset not named in the Output report is a violation.
+
+    If any item triggers an edit, re-walk the checklist from item 1 — fixes can cascade.
+
+    #### Gate 2: LSP static check
+
+    - **11a. Tool bootstrap.** `LSP` is a deferred tool — call `ToolSearch("select:LSP")` once to load its schema, then invoke it with the list of `.java` files you wrote or edited (step defs, clients, plus any fixture loader extensions if added).
+    - **11b. Iteration loop (max 3 passes).**
+      1. Collect the set of touched `.java` paths.
+      2. Call `LSP` on those paths. Keep diagnostics with `severity == ERROR`.
+      3. Partition errors:
+         - **SYNTACTIC** (agent fixes in-loop): missing/wrong import (e.g. `RequestSpecification`, `JsonPath`, `JsonSchemaValidator`), undefined local symbol, brace / paren / generic-arg mismatch, visibility mismatch on a method you just authored.
+         - **SEMANTIC** (escalate, do not "fix"): unresolved framework class, "no such method" on `ScenarioContext` or an injected client, ambiguous import, type incompatibility on a fixture-loader / schema-validator call.
+      4. Apply Edits for every SYNTACTIC error. Re-run step 2.
+      5. Stop when either: zero errors remain, OR a pass produced no new fixes, OR you've completed 3 passes.
+    - **11c. Do NOT mass-suppress.** Adding `@SuppressWarnings`, raw-typing a generic, casting to silence a type error, or commenting out a failing line to "make LSP happy" is a review-rejection. Surface the diagnostic verbatim instead.
+
+12. **Hand off — do NOT run tests.** This skill is **write-only**. Test execution is the orchestrator's responsibility, performed via the `cucumber-test-execution` skill in a separate step (typically a separate agent invocation). The api-test-agent intentionally has no `Bash` tool — there is no path for this skill to run `mvn test` itself.
 
     What you DO at this step:
 
-    - Stop after the code is written, fixtures + schemas are in place, and cleanup is registered.
-    - Set `Verification status: NOT VERIFIED — handoff to orchestrator` in the Output report.
-    - If you suspect a syntactic problem (e.g. you referenced a fixture path you weren't 100% sure existed), call it out under `Concerns for orchestrator run`. Do NOT attempt to compile or invoke the test runner to confirm.
+    - Stop after the code is written, fixtures + schemas are in place, cleanup is registered, and the LSP pass (§11) has run.
+    - Set `Verification status` to one of:
+      - `STATIC OK — handoff to orchestrator` if LSP returned zero ERROR-level diagnostics.
+      - `STATIC ERRORS (<n> remaining) — handoff to orchestrator` if SEMANTIC errors remain after the iteration loop; list each verbatim under `Static check (LSP)` in the Output report.
+    - If you suspect a non-LSP-visible problem (e.g. you referenced a fixture path you weren't 100% sure existed, but it's only resolvable at FixtureLoader-load time), call it out under `Concerns for orchestrator run`. Do NOT attempt to compile or invoke the test runner to confirm.
 
     What you do NOT do:
 
@@ -172,7 +208,17 @@ Cleanup actions registered: <count>
 Scenarios covered: <count>
 Scenarios with TODOs (could not implement): <list with reasons>
 
-Verification status: NOT VERIFIED — handoff to orchestrator
+Self-review findings:
+  Checklist items triggered: <count>  (0 = clean)
+    - <item-id>: <what you found and edited to fix it>
+
+Static check (LSP):
+  Passes run: <n> / 3
+  Syntactic errors fixed in-loop: <count>
+  Remaining SEMANTIC errors: <count>
+    - <file>:<line>:<col>  <diagnostic-code>  <message>
+
+Verification status: STATIC OK | STATIC ERRORS (<n> remaining) — handoff to orchestrator
 Concerns for orchestrator run: <list, or "none">
   e.g. "fixture `auth/legacy-login.json` referenced from generated code — verified
         exists via Glob but contents not validated against schema"

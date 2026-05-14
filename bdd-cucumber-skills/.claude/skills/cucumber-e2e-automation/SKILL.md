@@ -30,6 +30,7 @@ Do NOT use this skill when:
 6. **NEVER re-implement lifecycle** (browser context creation, hooks, screenshot-on-failure, tracing). The built-in framework provides these. Verify by Grep'ing `@Before`/`@After` in the dependency before assuming missing — and only add hooks if Grep confirms a gap.
 7. **Locator priority within a JSON entry is STRICT**: `data-testid` > role-based > label > text > placeholder > CSS > XPath. Going down requires a `_comment` field in the JSON entry explaining why and linking an issue.
 8. **Selector discovery via Playwright MCP is the PREFERRED path** when the target page is reachable. Probe the live DOM/accessibility tree with `mcp__playwright` tools BEFORE writing locator JSON entries. Fall back to spec/screenshot inference ONLY when the app is not reachable. Either way, surface which mode was used in the output report.
+9. **Two mandatory pre-handoff gates: self-review pass + LSP static check.** Hand-off is blocked unless BOTH have run with documented results. **Self-review** is the agent's own checklist audit against Hard Rules 1–8 and Output-report completeness (see §6 Gate 1) — catches semantic/convention issues LSP can't see. **LSP** is a static check via the language server on every `.java` file written or edited; iterate up to 3 passes fixing SYNTACTIC diagnostics, surface SEMANTIC ones verbatim. Self-review first, LSP after (self-review may produce code edits that affect what LSP sees). Skipping either gate, or "fixing" diagnostics by suppression rather than addressing them, is a review-rejection.
 
 ## Standards (index)
 
@@ -97,15 +98,54 @@ For any element a new snippet or step touches that isn't already in the JSON cat
 - For `NEW_SNIPPET` rows: create or extend a class under `src/test/java/.../snippets/<area>/` (verify the existing convention via Glob first — if the project uses a different package, follow that). The snippet method should be a single `@Given/@When/@Then` annotation whose body calls other step classes via picocontainer injection, NEVER `Page`/`Locator` directly. Pattern in `references/snippets.md`.
 - For `NEW_STEP` rows: create the step under `src/test/java/.../stepdefs/e2e/<area>/`. Inject the framework's locator-loader and use it to fetch the selector by key. Never hardcode the selector. Pattern in `references/step-discovery.md` § "Last-resort new step".
 
-### 6. Hand off — do NOT run tests
+### 6. Pre-handoff gates — self-review + LSP static check
+
+Two gates run in sequence before hand-off. This is Hard Rule 9.
+
+#### Gate 1: Self-review pass
+
+Re-read your own output against the checklist below. For every item that fails, Edit the relevant file to fix it. Then re-check. Record what you found and changed in the Output report's `Self-review findings` block (empty list = "clean self-review" is a valid and expected outcome — most runs should be).
+
+**Checklist (audit each item against your run, not against the codebase in general):**
+
+1. **No hardcoded selector strings in any Java file** (Hard Rule 2). Grep your touched `.java` for `"[#.][a-z][-a-zA-Z0-9_]*"`, `page.locator(`, `getByText(` etc. — every selector must come through the locator-loader API.
+2. **One locator JSON file per page/module**, filename matches the module key (Hard Rule 3). No umbrella files spanning multiple pages introduced.
+3. **No `Thread.sleep` or time-based wait** anywhere in this run (Hard Rule 5). Grep for `sleep`, `Thread\.sleep`, `TimeUnit`.
+4. **No Page Object class** created under `pages/` or `pageobjects/`. This codebase does NOT use POM (see Failure modes).
+5. **Every Gherkin line in every scenario has exactly one tag** (REUSE_BUILTIN / REUSE_PROJECT / NEW_SNIPPET / NEW_STEP). Untagged lines are a procedure violation.
+6. **Every NEW_STEP and NEW_SNIPPET has a written justification** in the Output-report draft (not just the tag count).
+7. **Locator discovery mode is recorded** — MCP-probed / fallback-inferred / mixed — and `_todo` flags exist on every fallback entry per `references/locators.md`.
+8. **Scope discipline** — you only touched files this feature required. No "while I was here" refactors of unrelated step defs or locator entries. (Grep your changeset: any file touched that isn't named in the Output report's `Locator changes` / Wire-up sections is a violation.)
+
+If any item triggers an edit, re-walk the checklist from item 1 — fixes can cascade.
+
+#### Gate 2: LSP static check
+
+**6a. Tool bootstrap.** `LSP` is a deferred tool — call `ToolSearch("select:LSP")` once to load its schema, then invoke it with the list of `.java` files you wrote or edited in this run.
+
+**6b. Iteration loop (max 3 passes).**
+
+1. Collect the set of touched `.java` paths.
+2. Call `LSP` on those paths. Keep diagnostics with `severity == ERROR`; ignore warnings unless you specifically introduced one.
+3. Partition errors:
+   - **SYNTACTIC** (agent fixes in-loop): missing/wrong import, undefined local symbol, brace / paren / generic-arg mismatch, visibility mismatch on a method you just authored, obvious typos in identifiers you authored.
+   - **SEMANTIC** (escalate, do not "fix"): unresolved framework class, "no such method" on an imported step/snippet class, ambiguous import, type incompatibility from an external library you did not author.
+4. Apply Edits for every SYNTACTIC error. Re-run step 2.
+5. Stop when either: zero errors remain, OR a pass produced no new fixes, OR you've completed 3 passes.
+
+**6c. Do NOT mass-suppress.** Adding `@SuppressWarnings`, casting to silence a type error, or commenting out a failing line to "make LSP happy" is a review-rejection. Surface the diagnostic verbatim instead.
+
+### 7. Hand off — do NOT run tests
 
 This skill is **write-only**. Test execution is the orchestrator's responsibility, performed via the `cucumber-test-execution` skill in a separate step (typically a separate agent invocation). The e2e-test-agent intentionally has no `Bash` tool — there is no path for this skill to run `mvn test` itself.
 
 What you DO at this step:
 
-- Stop after the code is written and the locator JSON is updated.
-- Set `Verification status: NOT VERIFIED — handoff to orchestrator` in the Output report.
-- If you suspect a syntactic problem (e.g. you referenced a step regex you weren't sure existed), call it out in the Output report under `Concerns for orchestrator run`. Do NOT attempt to compile or invoke the test runner to confirm.
+- Stop after the code is written, the locator JSON is updated, and the LSP pass (§6) has run.
+- Set `Verification status` to one of:
+  - `STATIC OK — handoff to orchestrator` if LSP returned zero ERROR-level diagnostics.
+  - `STATIC ERRORS (<n> remaining) — handoff to orchestrator` if SEMANTIC errors remain after the iteration loop; list each verbatim under `Static check (LSP)` in the Output report.
+- If you suspect a non-LSP-visible problem (e.g. you referenced a built-in step regex you weren't sure existed, but it's only resolvable at Cucumber-load time), call it out under `Concerns for orchestrator run`. Do NOT attempt to compile or invoke the test runner to confirm.
 
 What you do NOT do:
 
@@ -189,7 +229,17 @@ Network mocks used: <list or "none">
 Scenarios covered: <count>
 Scenarios with TODOs (could not implement): <list with reasons>
 
-Verification status: NOT VERIFIED — handoff to orchestrator
+Self-review findings:
+  Checklist items triggered: <count>  (0 = clean)
+    - <item-id>: <what you found and edited to fix it>
+
+Static check (LSP):
+  Passes run: <n> / 3
+  Syntactic errors fixed in-loop: <count>
+  Remaining SEMANTIC errors: <count>
+    - <file>:<line>:<col>  <diagnostic-code>  <message>
+
+Verification status: STATIC OK | STATIC ERRORS (<n> remaining) — handoff to orchestrator
 Concerns for orchestrator run: <list, or "none">
   e.g. "referenced built-in step `@When(\"I confirm the modal\")` not found in
         sources JAR — may be in a transitive dep we couldn't grep"

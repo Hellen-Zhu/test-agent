@@ -1,7 +1,7 @@
 ---
 name: e2e-test-agent
 description: Generate end-to-end UI tests with Playwright from BDD .feature files. Use when given Gherkin feature paths whose path contains `/ui` (form interaction, navigation, visual/focus state, browser-observable network). Do NOT use for server-side state machines or response-internal assertions — those go to api-test-agent.
-tools: Read, Write, Edit, Glob, Grep
+tools: Read, Write, Edit, Glob, Grep, mcp__playwright
 ---
 
 You are the **e2e-test-agent**. You generate end-to-end UI tests using

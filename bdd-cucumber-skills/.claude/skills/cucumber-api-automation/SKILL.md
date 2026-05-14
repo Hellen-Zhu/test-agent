@@ -30,6 +30,7 @@ Do NOT use this skill when:
 6. EVERY scenario that creates server-side state MUST clean up in a `@After` hook keyed by the `@AfterEach` cleanup queue on `ScenarioContext`.
 7. NEVER hardcode credentials, tokens, base URLs. Use `System.getProperty("test.<key>")` with sensible defaults from `src/test/resources/application-test.properties`.
 8. EVERY response assertion MUST include a schema check via `JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/<area>/<name>.json")` for any non-trivial response body.
+9. **The SUT's online OpenAPI/Swagger spec is the upstream source of truth** for endpoints, status codes, and request/response shapes. The agent reads it via `WebFetch` against the URL resolved from `application-test*.properties` (`test.api.docsUrl` or equivalent, environment-pinned). Local `schemas/<area>/*.json` files are spec-pinned snapshots — authoritative for `matchesJsonSchemaInClasspath` at runtime, but the spec is upstream. **Drift between spec and local schema is surfaced in the output report, NEVER silently fixed by the agent.**
 
 ## Standards (index)
 
@@ -46,17 +47,51 @@ Do NOT use this skill when:
 For each `.feature` file you implement:
 
 1. **Read the feature.** Note scenarios, tags, doc-string payloads, data tables, parameter types.
-2. **Place the step def class.** Path: `src/test/java/com/<org>/tests/api/stepdefs/<area>/<Feature>StepDefs.java`. Use the template at `assets/template-stepdefs/ApiStepDefs.java`.
-3. **Wire up dependencies.** Inject `ScenarioContext`, plus the area's typed client (e.g. `AuthClient`). Cucumber 4.x's picocontainer creates one instance per scenario automatically.
-4. **Map each Gherkin step to a `@Given/@When/@Then` method.**
+
+2. **Discovery phase — read upstream first, then reuse before authoring.** This agent has no Bash tool by design (least privilege); the only network-touching tool is `WebFetch`, scoped to fetching the SUT spec. Use Glob / Grep / Read / WebFetch in the order below. Record findings in the Output report. Full procedure: `references/step-discovery.md`.
+
+   - **2a. Tier 0 — SUT contract (online OpenAPI/Swagger spec).** Per Hard Rule 9. Resolve `test.api.docsUrl` from `src/test/resources/application-test*.properties` (or ask the user if absent). WebFetch the spec, extract endpoint paths / status codes / request shapes / response shapes for the endpoints the feature touches. Detect drift against local `schemas/<area>/*.json`. If unreachable, mark `SUT contract source: unreachable — <reason>` and continue under that caveat — do NOT silently degrade to "guess from feature text".
+   - **2b. Tier 1–5 — Built-in steps from the internal BDD framework.** Walk the 5-tier hierarchy from `references/step-discovery.md § 1`: `.bdd-step-index/api-*.txt` → `STEPS.md` → cached Javadoc → AskUserQuestion → mark unavailable. Record which tier resolved each match.
+   - **2c. Existing typed clients.** Glob `src/test/java/**/clients/**/*.java`. For each `<Area>Client`, Read the public method signatures. If a method already covers the HTTP call the feature needs, REUSE it — do not create a parallel client.
+   - **2d. Existing step defs.** Glob `src/test/java/**/stepdefs/**/*.java`. Grep for `@Given|@When|@Then` annotations whose regex matches a Gherkin line in this feature. If a match exists, decide whether to reuse (cross-feature shared step) or to author a feature-scoped step in this file — and justify the choice in the report.
+   - **2e. Existing fixtures.** Glob `src/test/resources/fixtures/<area>/*.json`. If a fixture covers the payload shape (possibly via the builder mutation pattern, see `references/fixtures.md`), reuse it.
+   - **2f. Existing schemas.** Glob `src/test/resources/schemas/<area>/*.json`. If a schema already validates the response shape AND the spec confirms it's still current (no drift from 2a), reference it. Author a new schema only when the response shape genuinely doesn't exist yet OR drift forces a versioned new file (Hard Rule S4).
+   - **2g. Reuse tags.** For each piece you decided to author, assign one tag and record it in the inventory:
+     | Tag | Meaning |
+     |-----|---------|
+     | `REUSE_BUILTIN` | Built-in step from internal framework (Tier 1) matches |
+     | `REUSE_CLIENT` | Existing typed client method covers the call |
+     | `REUSE_STEP` | Existing project `@Given/@When/@Then` matches the Gherkin line |
+     | `REUSE_FIXTURE` | Existing fixture (possibly mutated) covers the payload |
+     | `REUSE_SCHEMA` | Existing schema covers the response shape AND spec confirms no drift |
+     | `NEW_CLIENT` / `NEW_STEP` / `NEW_FIXTURE` / `NEW_SCHEMA` | No existing artifact matches; justify in the report |
+
+3. **Place the step def class.** Path: `src/test/java/com/<org>/tests/api/stepdefs/<area>/<Feature>StepDefs.java`. Use the template at `assets/template-stepdefs/ApiStepDefs.java`.
+4. **Wire up dependencies.** Inject `ScenarioContext`, plus the area's typed client (e.g. `AuthClient`). Cucumber 4.x's picocontainer creates one instance per scenario automatically.
+5. **Map each Gherkin step to a `@Given/@When/@Then` method.**
    - Use Cucumber Expressions (`{string}`, `{int}`) — only fall back to regex when an expression can't express the pattern.
    - Step text matches EXACTLY what the feature wrote (whitespace, quotes).
-5. **Drive HTTP through the typed client.** The step def calls `authClient.login(LoginRequest payload)`; the client owns base URL, auth, retry semantics.
-6. **Persist response into `ScenarioContext.lastResponse`** so `Then` steps can assert on it.
-7. **Implement assertions** using Hamcrest + JsonPath. Always assert status code first, then schema, then field values.
-8. **Implement `@After` cleanup**. Drain `ScenarioContext.cleanupActions` in LIFO order; swallow exceptions per action but log them.
-9. **Implement fixtures.** Place under `src/test/resources/fixtures/<area>/<name>.json`. Load via `FixtureLoader.load("auth/valid-login")`.
-10. **Verify**: run only the matching scenario locally with `mvn test -Dcucumber.options="--tags '@story-<id>'"` (full execution patterns in `cucumber-test-execution`).
+6. **Drive HTTP through the typed client.** The step def calls `authClient.login(LoginRequest payload)`; the client owns base URL, auth, retry semantics.
+7. **Persist response into `ScenarioContext.lastResponse`** so `Then` steps can assert on it.
+8. **Implement assertions** using Hamcrest + JsonPath. Always assert status code first, then schema, then field values.
+9. **Implement `@After` cleanup**. Drain `ScenarioContext.cleanupActions` in LIFO order; swallow exceptions per action but log them.
+10. **Implement fixtures.** Place under `src/test/resources/fixtures/<area>/<name>.json`. Load via `FixtureLoader.load("auth/valid-login")`.
+
+11. **Hand off — do NOT run tests.** This skill is **write-only**. Test execution is the orchestrator's responsibility, performed via the `cucumber-test-execution` skill in a separate step (typically a separate agent invocation). The api-test-agent intentionally has no `Bash` tool — there is no path for this skill to run `mvn test` itself.
+
+    What you DO at this step:
+
+    - Stop after the code is written, fixtures + schemas are in place, and cleanup is registered.
+    - Set `Verification status: NOT VERIFIED — handoff to orchestrator` in the Output report.
+    - If you suspect a syntactic problem (e.g. you referenced a fixture path you weren't 100% sure existed), call it out under `Concerns for orchestrator run`. Do NOT attempt to compile or invoke the test runner to confirm.
+
+    What you do NOT do:
+
+    - Run `mvn test`, `mvn compile`, `javac`, or any test/build command.
+    - Invoke `cucumber-test-execution` skill from inside this skill (the orchestrator owns that handoff).
+    - Silently "fix" anything based on assumed test output.
+
+    Failure feedback loop: if the orchestrator's run produces failures, it will dispatch a follow-up task to this same agent with the failure log. Handle that as a new invocation of this skill, scoped to the failing scenarios.
 
 ## When to consult what
 
@@ -97,10 +132,48 @@ When done implementing a feature's step defs:
 ```
 Feature: <path>
 Step def class: <path to .java>
-Client(s) used or added: <list>
-Fixtures created: <list of .json paths>
-Schemas referenced or added: <list of schema paths>
+
+Discovery inventory:
+  SUT contract source: <URL or "unreachable — <reason>">
+  Spec format: <OpenAPI 3.x | Swagger 2.x | unknown>
+  Endpoints touched by feature: <count>
+    - <METHOD> <path>  [verified against spec | not verified — spec unreachable]
+  Local schema drift detected: <count>
+    - <endpoint>: <what changed in spec that local schema doesn't reflect>
+
+  Built-in step discovery (Tier 1):
+    Discovery source: index | catalog | javadoc | user-provided | unavailable
+    Built-in step library: <groupId:artifactId:version>
+    Index file consulted: <path, or "n/a — used <tier>">
+    Built-in steps matched: <count>
+      - <step regex>  →  <FQN>
+
+  Project-side scan:
+    Existing clients scanned: <count> under src/test/java/**/clients/
+    Existing step defs scanned: <count> under src/test/java/**/stepdefs/
+    Existing fixtures scanned: <count> under src/test/resources/fixtures/
+    Existing schemas scanned: <count> under src/test/resources/schemas/
+
+Reuse vs. new (per artifact):
+  REUSE_BUILTIN: <count> — list FQNs
+  REUSE_CLIENT:  <count> — list FQNs
+  REUSE_STEP:    <count> — list FQNs
+  REUSE_FIXTURE: <count> — list paths
+  REUSE_SCHEMA:  <count> — list paths
+  NEW_CLIENT:    <count> — files: <list>  ← justify each below
+  NEW_STEP:      <count> — files: <list>
+  NEW_FIXTURE:   <count> — files: <list>
+  NEW_SCHEMA:    <count> — files: <list>
+
+New artifact justifications (if any NEW_* > 0):
+  - <artifact>: <why no existing artifact covers this need>
+
 Cleanup actions registered: <count>
 Scenarios covered: <count>
 Scenarios with TODOs (could not implement): <list with reasons>
+
+Verification status: NOT VERIFIED — handoff to orchestrator
+Concerns for orchestrator run: <list, or "none">
+  e.g. "fixture `auth/legacy-login.json` referenced from generated code — verified
+        exists via Glob but contents not validated against schema"
 ```

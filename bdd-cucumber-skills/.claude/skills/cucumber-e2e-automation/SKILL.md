@@ -53,10 +53,14 @@ Identify pages/modules touched, user flows, expected outcomes. Note which steps 
 
 Build a reuse inventory BEFORE writing anything. See `references/step-discovery.md` for the full procedure. Summary:
 
-- **2a. Built-in steps.** Read `pom.xml`. Find the internal BDD framework artifact (likely `com.<org>.*:*-bdd-steps` or similar). Then:
-  - **Prefer**: extract `~/.m2/repository/<groupId-path>/<artifactId>/<version>/<artifactId>-<version>-sources.jar` and Grep it for `@Given|@When|@Then` annotations.
-  - **Fallback**: if no sources JAR, ask the user for the step catalog doc/wiki URL and Read it; or `javap -p` the class JAR for method signatures.
-  - Record every match relevant to the feature's verbs into the inventory.
+- **2a. Built-in steps.** This agent has no Bash tool, so all built-in discovery goes through pre-materialized artifacts. Walk the 5-tier source hierarchy in `references/step-discovery.md § 1`:
+  1. **Tier 1** — Glob `bdd-cucumber-skills/.bdd-step-index/*.txt`; Grep matching lines (pipe-delimited `@When|I click {string}|FQN`).
+  2. **Tier 2** — Glob `docs/STEPS.md` / `docs/step-catalog.md` (framework-team-published catalog).
+  3. **Tier 3** — cached Javadoc URL referenced in `pom.xml` or `docs/` → WebFetch the specific class page.
+  4. **Tier 4** — AskUserQuestion for catalog pointer or explicit `NEW_STEP` permission.
+  5. **Tier 5** — mark `Discovery source: unavailable` in the report; surface every unverified Gherkin line.
+  - Record which tier you used (`Discovery source` field) and every match relevant to the feature's verbs into the inventory.
+  - Do NOT escalate to Bash / unzip / mvn to "fix" a missing index — that's a build-engineer concern, raise it in the report instead.
 
 - **2b. Existing project steps.** Glob `src/test/java/**/{steps,stepdefs}/**/*.java`. Grep for `@Given|@When|@Then` patterns matching each Gherkin line. Record matches.
 
@@ -93,15 +97,23 @@ For any element a new snippet or step touches that isn't already in the JSON cat
 - For `NEW_SNIPPET` rows: create or extend a class under `src/test/java/.../snippets/<area>/` (verify the existing convention via Glob first — if the project uses a different package, follow that). The snippet method should be a single `@Given/@When/@Then` annotation whose body calls other step classes via picocontainer injection, NEVER `Page`/`Locator` directly. Pattern in `references/snippets.md`.
 - For `NEW_STEP` rows: create the step under `src/test/java/.../stepdefs/e2e/<area>/`. Inject the framework's locator-loader and use it to fetch the selector by key. Never hardcode the selector. Pattern in `references/step-discovery.md` § "Last-resort new step".
 
-### 6. Verify
+### 6. Hand off — do NOT run tests
 
-Run only the matching scenario:
+This skill is **write-only**. Test execution is the orchestrator's responsibility, performed via the `cucumber-test-execution` skill in a separate step (typically a separate agent invocation). The e2e-test-agent intentionally has no `Bash` tool — there is no path for this skill to run `mvn test` itself.
 
-```
-mvn test -Dcucumber.options="--tags '@story-<id>'"
-```
+What you DO at this step:
 
-Full execution patterns in `cucumber-test-execution`.
+- Stop after the code is written and the locator JSON is updated.
+- Set `Verification status: NOT VERIFIED — handoff to orchestrator` in the Output report.
+- If you suspect a syntactic problem (e.g. you referenced a step regex you weren't sure existed), call it out in the Output report under `Concerns for orchestrator run`. Do NOT attempt to compile or invoke the test runner to confirm.
+
+What you do NOT do:
+
+- Run `mvn test`, `mvn compile`, `javac`, or any test/build command.
+- Invoke `cucumber-test-execution` skill from inside this skill (the orchestrator owns that handoff, not you).
+- Silently "fix" anything based on assumed test output.
+
+Failure feedback loop: if the orchestrator's run produces failures, it will dispatch a follow-up task to this same agent with the failure log. Handle that as a new invocation of this skill, scoped to the failing scenarios.
 
 ## When to consult what
 
@@ -130,7 +142,7 @@ If versions differ, surface this in the report — do NOT silently adapt to inco
 
 ## Failure modes
 
-- **Symptom**: PR review comment "this duplicates an existing step in `com.x.framework.steps.AuthSteps`". → **Cause**: Skipped Discovery phase 2a (built-in step search). → **Fix**: Always extract the sources JAR and Grep it before authoring; record matches in the inventory.
+- **Symptom**: PR review comment "this duplicates an existing step in `com.x.framework.steps.AuthSteps`". → **Cause**: Skipped Discovery phase 2a (built-in step search), or `.bdd-step-index/` was stale/missing and no fallback tier was consulted. → **Fix**: Always Grep `.bdd-step-index/builtin-steps.txt` first; if absent, walk Tiers 2–5 from `references/step-discovery.md § 1`. Record `Discovery source` tier in the report so reviewers can spot a degraded run.
 - **Symptom**: Authored a new Java step that just chains `framework.click(...)` + `framework.fill(...)`. → **Cause**: Classified a composition as `NEW_STEP` instead of `NEW_SNIPPET`. → **Fix**: If the body is ≥ 2 calls to OTHER steps, it's a snippet — relocate it to `snippets/` and annotate accordingly.
 - **Symptom**: Locator works locally, breaks in CI after a UI text change. → **Cause**: JSON entry used `getByText` when a `data-testid` exists. → **Fix**: Re-probe via MCP; bump up the locator priority. Update the JSON entry; no Java changes needed (this is the whole point of the JSON catalog).
 - **Symptom**: Hardcoded selector string slipped into a Java step. → **Cause**: Hard Rule 2 violation. → **Fix**: Move the selector to `src/test/resources/locators/<page>.json` under a meaningful key; replace the inline string with a locator-loader call.
@@ -146,11 +158,15 @@ When done implementing a feature's step defs:
 Feature: <path>
 
 Discovery inventory:
-  Built-in steps matched: <count> (artifact: <groupId:artifactId:version>)
+  Discovery source: index | catalog | javadoc | user-provided | unavailable
+  Built-in step library: <groupId:artifactId:version>
+  Index file consulted: <path, or "n/a — used <tier>">
+  Built-in steps matched: <count>
     - <step regex>  →  <FQN>
   Project steps matched: <count>
     - <step regex>  →  <FQN>  [snippet|primitive]
-  Sources JAR available: yes | no (used <fallback>)
+  Gherkin lines unverified against built-ins (Tier 5 only): <list or "none">
+    - <gherkin line>: <why no tier resolved it>
 
 Mapping:
   REUSE_BUILTIN: <count> lines
@@ -172,4 +188,9 @@ Locator changes:
 Network mocks used: <list or "none">
 Scenarios covered: <count>
 Scenarios with TODOs (could not implement): <list with reasons>
+
+Verification status: NOT VERIFIED — handoff to orchestrator
+Concerns for orchestrator run: <list, or "none">
+  e.g. "referenced built-in step `@When(\"I confirm the modal\")` not found in
+        sources JAR — may be in a transitive dep we couldn't grep"
 ```
